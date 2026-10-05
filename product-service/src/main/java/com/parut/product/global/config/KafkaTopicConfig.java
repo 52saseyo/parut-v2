@@ -14,6 +14,6 @@ public class KafkaTopicConfig {
         return TopicBuilder.name(KafkaTopicConstants.TIME_DEAL_OPENING_SOON)
                 .partitions(1)
                 .replicas(1)
-                .build();
+                .build(); // NOTE : 테스트
     }
 }
