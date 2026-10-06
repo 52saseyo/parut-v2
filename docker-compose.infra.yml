@@ -91,7 +91,7 @@ services:
       - parut-net
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.14.0
     container_name: prometheus
     volumes:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
@@ -100,8 +100,20 @@ services:
     networks:
       - parut-net
 
+  loki:
+    image: grafana/loki:3.7.8
+    container_name: loki
+    command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./infra/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    networks:
+      - parut-net
+
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.2.2
     container_name: grafana
     ports:
       - "3000:3000"
@@ -119,6 +131,7 @@ services:
 volumes:
   local_postgres_data:
   grafana_data:
+  loki_data:
 
 networks:
   parut-net:
