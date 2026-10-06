@@ -43,4 +43,8 @@ public class KafkaConsumerConfig {
         return factory;
     }
 
+    /**
+     * TODO : DLT 및 재시도
+     */
+
 }
