@@ -112,6 +112,26 @@ services:
     networks:
       - parut-net
 
+  alloy:
+    image: grafana/alloy:v1.20.1
+    container_name: alloy
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - --disable-reporting
+      - /etc/alloy/config.alloy
+    ports:
+      - "12345:12345"
+    volumes:
+      - ./infra/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
+    depends_on:
+      - loki
+    networks:
+      - parut-net
+
   grafana:
     image: grafana/grafana:13.2.2
     container_name: grafana
@@ -132,6 +152,7 @@ volumes:
   local_postgres_data:
   grafana_data:
   loki_data:
+  alloy_data:
 
 networks:
   parut-net:
