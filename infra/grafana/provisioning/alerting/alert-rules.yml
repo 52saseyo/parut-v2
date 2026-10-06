@@ -1,0 +1,186 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: PARUT 서비스 모니터링
+    folder: PARUT Alerts
+    interval: 1m
+    rules:
+      - uid: parut-service-down
+        title: 서비스 메트릭 수집 실패
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: 'label_replace((up{job=~".*-service"} == 0) and on(job, instance) ((max_over_time(up{job=~".*-service"}[10m]) == 1) or (up{job=~".*-service"} and on() ((time() - process_start_time_seconds{job="prometheus"}) > 600))), "service_name", "$1", "job", "(.*)")'
+              instant: true
+              intervalMs: 15000
+              legendFormat: '{{job}}'
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - B
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: threshold
+        noDataState: OK
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          __dashboardUid__: parut-services
+          __panelId__: '6'
+          summary: '서비스 메트릭 수집 실패: {{ $labels.service_name }}'
+          description: 'Prometheus가 {{ $labels.service_name }} 서비스의 메트릭을 1분 이상 수집하지 못했습니다.'
+        labels:
+          severity: critical
+          source: prometheus
+
+      - uid: parut-error-log-spike
+        title: ERROR 로그 급증
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              datasource:
+                type: loki
+                uid: loki
+              editorMode: code
+              expr: 'sum by (service_name) (count_over_time({service_name=~".*-service", level="error"}[5m]))'
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: instant
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 2
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - B
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: threshold
+        noDataState: OK
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          __dashboardUid__: parut-logs
+          __panelId__: '8'
+          summary: '{{ $labels.service_name }} ERROR 로그 급증'
+          description: '{{ $labels.service_name }}에서 최근 5분간 ERROR 로그가 3건 이상 발생한 상태가 1분 이상 지속됐습니다.'
+        labels:
+          severity: warning
+          source: loki
+
+      - uid: parut-service-cpu-high
+        title: 서비스 CPU 사용률 50% 초과
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: 'label_replace((avg_over_time(process_cpu_usage{job=~".*-service"}[1m]) * 100) and on(job, instance) (application_ready_time_seconds{job=~".*-service"} > 0), "service_name", "$1", "job", "(.*)")'
+              instant: true
+              intervalMs: 15000
+              legendFormat: '{{service_name}}'
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 50
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - B
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: threshold
+        noDataState: OK
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: '{{ $labels.service_name }} CPU 사용률 50% 초과'
+          description: '{{ $labels.service_name }}의 최근 1분 평균 CPU 사용률이 50%를 초과한 상태가 1분 이상 지속됐습니다. 현재 값: {{ $values.A.Value }}%'
+        labels:
+          severity: warning
+          source: prometheus
