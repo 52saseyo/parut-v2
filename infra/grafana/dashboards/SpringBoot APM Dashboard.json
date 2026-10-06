@@ -60,7 +60,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "alias": "",
@@ -184,7 +184,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "alias": "",
@@ -308,7 +308,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "alias": "",
@@ -432,7 +432,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "irate(http_server_requests_seconds_sum{instance=~\"$instance\", application=\"$application\", exception=\"None\", uri!~\".*actuator.*\"}[5m]) / irate(http_server_requests_seconds_count{instance=~\"$instance\", application=\"$application\", exception=\"None\", uri!~\".*actuator.*\"}[5m])",
@@ -552,7 +552,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "alias": "",
@@ -676,7 +676,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "tomcat_sessions_active_current_sessions{instance=~\"$instance\", application=\"$application\"}",
@@ -798,7 +798,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "irate(tomcat_global_sent_bytes_total{instance=~\"$instance\", application=\"$application\"}[5m])",
@@ -820,7 +820,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "irate(tomcat_global_received_bytes_total{instance=~\"$instance\", application=\"$application\"}[5m])",
@@ -941,7 +941,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "tomcat_global_error_total{instance=~\"$instance\", application=\"$application\"}",
@@ -1037,7 +1037,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "tomcat_threads_current{instance=~\"$instance\", application=\"$application\"}",
@@ -1059,7 +1059,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "tomcat_threads_busy{instance=~\"$instance\", application=\"$application\"}",
@@ -1180,7 +1180,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "tomcat_threads_config_max{instance=~\"$instance\", application=\"$application\"}",
@@ -1275,7 +1275,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "hikaricp_connections_active{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
@@ -1296,7 +1296,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "hikaricp_connections_idle{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
@@ -1317,7 +1317,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "hikaricp_connections_pending{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
@@ -1459,7 +1459,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "hikaricp_connections_creation_seconds_sum{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"} / hikaricp_connections_creation_seconds_count{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
@@ -1575,7 +1575,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "irate(http_server_requests_seconds_count{instance=~\"$instance\", application=\"$application\", uri!~\".*actuator.*\"}[5m])",
@@ -1691,7 +1691,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "hikaricp_connections_acquire_seconds_sum{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"} / hikaricp_connections_acquire_seconds_count{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
@@ -1807,7 +1807,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "hikaricp_connections_usage_seconds_sum{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"} / hikaricp_connections_usage_seconds_count{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
@@ -1923,7 +1923,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "hikaricp_connections{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
@@ -2018,7 +2018,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "hikaricp_connections_timeout_total{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
@@ -2113,7 +2113,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_classes_loaded_classes{instance=~\"$instance\", application=\"$application\"}",
@@ -2236,7 +2236,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "sum(process_uptime_seconds{application=\"$application\", instance=~\"$instance\"})",
@@ -2340,7 +2340,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "avg(process_start_time_seconds{application=\"$application\", instance=~\"$instance\"})*1000",
@@ -2438,7 +2438,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "sum(jvm_memory_used_bytes{application=\"$application\", instance=~\"$instance\", area=\"heap\"})*100/sum(jvm_memory_max_bytes{application=\"$application\",instance=~\"$instance\", area=\"heap\"})",
@@ -2542,7 +2542,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "alias": "",
@@ -2666,7 +2666,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "sum(jvm_memory_used_bytes{application=\"$application\", instance=~\"$instance\", area=\"nonheap\"})*100/sum(jvm_memory_max_bytes{application=\"$application\",instance=~\"$instance\", area=\"nonheap\"})",
@@ -2779,7 +2779,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "process_files_open_files{application=\"$application\", instance=~\"$instance\"}",
@@ -2801,7 +2801,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "process_files_max{application=\"$application\", instance=~\"$instance\"}",
@@ -2917,7 +2917,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_threads_daemon_threads{instance=~\"$instance\", application=\"$application\"}",
@@ -2939,7 +2939,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_threads_live{instance=~\"$instance\", application=\"$application\"}",
@@ -2960,7 +2960,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_threads_peak{instance=~\"$instance\", application=\"$application\"}",
@@ -3081,7 +3081,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "irate(jvm_gc_pause_seconds_count{instance=~\"$instance\", application=\"$application\"}[5m])",
@@ -3243,7 +3243,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "irate(jvm_gc_pause_seconds_sum{instance=~\"$instance\", application=\"$application\"}[5m])",
@@ -3405,7 +3405,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "irate(jvm_gc_memory_allocated_bytes_total{instance=~\"$instance\", application=\"$application\"}[5m])",
@@ -3426,7 +3426,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "irate(jvm_gc_memory_promoted_bytes_total{instance=~\"$instance\", application=\"$application\"}[5m])",
@@ -3542,7 +3542,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "irate(jvm_classes_unloaded_classes_total{instance=~\"$instance\", application=\"$application\"}[5m])",
@@ -3659,7 +3659,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_buffer_memory_used_bytes{instance=~\"$instance\", application=\"$application\", id=\"direct\"}",
@@ -3680,7 +3680,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_buffer_total_capacity_bytes{instance=~\"$instance\", application=\"$application\", id=\"direct\"}",
@@ -3796,7 +3796,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_buffer_memory_used_bytes{instance=~\"$instance\", application=\"$application\", id=\"mapped\"}",
@@ -3817,7 +3817,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_buffer_total_capacity_bytes{instance=~\"$instance\", application=\"$application\", id=\"mapped\"}",
@@ -3933,7 +3933,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_memory_used_bytes{instance=~\"$instance\", application=\"$application\", id=\"$memory_pool_heap\"}",
@@ -3954,7 +3954,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_memory_committed_bytes{instance=~\"$instance\", application=\"$application\", id=\"$memory_pool_heap\"}",
@@ -3975,7 +3975,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_memory_max_bytes{instance=~\"$instance\", application=\"$application\", id=\"$memory_pool_heap\"}",
@@ -4096,7 +4096,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_memory_used_bytes{instance=~\"$instance\", application=\"$application\", id=\"$memory_pool_nonheap\"}",
@@ -4118,7 +4118,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_memory_committed_bytes{instance=~\"$instance\", application=\"$application\", id=\"$memory_pool_nonheap\"}",
@@ -4139,7 +4139,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "jvm_memory_max_bytes{instance=~\"$instance\", application=\"$application\", id=\"$memory_pool_nonheap\"}",
@@ -4260,7 +4260,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "system_cpu_usage{instance=~\"$instance\", application=\"$application\"}",
@@ -4281,7 +4281,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "process_cpu_usage{instance=~\"$instance\", application=\"$application\"}",
@@ -4402,7 +4402,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "system_load_average_1m{instance=~\"$instance\", application=\"$application\"}",
@@ -4423,7 +4423,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "efywzrtzqp91ce"
+                        "name": "prometheus"
                       },
                       "spec": {
                         "expr": "system_cpu_count{instance=~\"$instance\", application=\"$application\"}",
@@ -5138,7 +5138,7 @@
             "group": "prometheus",
             "version": "v0",
             "datasource": {
-              "name": "efywzrtzqp91ce"
+              "name": "prometheus"
             },
             "spec": {
               "__legacyStringValue": "label_values(application)"
@@ -5171,7 +5171,7 @@
             "group": "prometheus",
             "version": "v0",
             "datasource": {
-              "name": "efywzrtzqp91ce"
+              "name": "prometheus"
             },
             "spec": {
               "__legacyStringValue": "label_values(jvm_memory_used_bytes{application=\"$application\"}, instance)"
@@ -5205,7 +5205,7 @@
             "group": "prometheus",
             "version": "v0",
             "datasource": {
-              "name": "efywzrtzqp91ce"
+              "name": "prometheus"
             },
             "spec": {
               "__legacyStringValue": "label_values(hikaricp_connections{application=\"$application\"}, pool)"
@@ -5238,7 +5238,7 @@
             "group": "prometheus",
             "version": "v0",
             "datasource": {
-              "name": "efywzrtzqp91ce"
+              "name": "prometheus"
             },
             "spec": {
               "__legacyStringValue": "label_values(jvm_memory_used_bytes{application=\"$application\", area=\"heap\"},id)"
@@ -5271,7 +5271,7 @@
             "group": "prometheus",
             "version": "v0",
             "datasource": {
-              "name": "efywzrtzqp91ce"
+              "name": "prometheus"
             },
             "spec": {
               "__legacyStringValue": "label_values(jvm_memory_used_bytes{application=\"$application\", area=\"nonheap\"},id)"
