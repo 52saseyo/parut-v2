@@ -147,7 +147,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service_name=~\"$service_name\", level=\"warn\"}[$__range]))",
+          "expr": "sum(count_over_time({service_name=~\"$service_name\", level=\"warn\"}[$__range])) or vector(0)",
           "queryType": "instant",
           "refId": "A"
         }
@@ -216,12 +216,195 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service_name=~\"$service_name\", level=\"error\"}[$__range]))",
+          "expr": "sum(count_over_time({service_name=~\"$service_name\", level=\"error\"}[$__range])) or vector(0)",
           "queryType": "instant",
           "refId": "A"
         }
       ],
       "title": "ERROR 로그",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "선택한 서비스에서 발생한 ERROR 로그를 시간대별로 보여줍니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "errors",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.2.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "sum by (service_name) (count_over_time({service_name=~\"$service_name\", level=\"error\"}[$__interval]))",
+          "legendFormat": "{{service_name}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "ERROR 로그 추이",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Prometheus가 각 서비스의 메트릭을 정상적으로 수집하고 있는지 보여줍니다. UP은 수집 성공, DOWN은 수집 실패를 의미합니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "up{job=~\".*-service\"}",
+          "instant": true,
+          "legendFormat": "{{job}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "서비스 메트릭 수집 상태",
       "type": "stat"
     },
     {
@@ -285,7 +468,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 4
+        "y": 12
       },
       "id": 4,
       "options": {
@@ -381,7 +564,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 12
       },
       "id": 5,
       "options": {
@@ -426,7 +609,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 20
       },
       "id": 6,
       "options": {
@@ -461,12 +644,12 @@
         "type": "loki",
         "uid": "loki"
       },
-      "description": "선택한 시간 범위와 서비스에 해당하는 전체 로그입니다.",
+      "description": "선택한 시간 범위와 서비스의 로그입니다. Trace ID 입력란이 비어 있으면 전체 로그를, 값이 있으면 해당 문자열이 포함된 로그만 표시합니다.",
       "gridPos": {
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 21
+        "y": 29
       },
       "id": 7,
       "options": {
@@ -488,12 +671,12 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "{service_name=~\"$service_name\"}",
+          "expr": "{service_name=~\"$service_name\"} |= \"$trace_id\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "전체 로그 상세",
+      "title": "Trace ID · 전체 로그 상세",
       "type": "logs"
     }
   ],
@@ -529,6 +712,24 @@
         "regex": "/^(?!unknown_service$).*/",
         "sort": 1,
         "type": "query"
+      },
+      {
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "description": "Trace ID 또는 로그 본문에 포함된 검색어를 입력합니다. 비워두면 전체 로그를 표시합니다.",
+        "label": "Trace ID",
+        "name": "trace_id",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "type": "textbox"
       }
     ]
   },
