@@ -20,7 +20,7 @@ groups:
                 type: prometheus
                 uid: prometheus
               editorMode: code
-              expr: 'up{job=~".*-service"}'
+              expr: 'label_replace(up{job=~".*-service"}, "service_name", "$1", "job", "(.*)")'
               instant: true
               intervalMs: 15000
               legendFormat: '{{job}}'
@@ -61,8 +61,8 @@ groups:
         execErrState: Alerting
         for: 1m
         annotations:
-          summary: '서비스 메트릭 수집 실패: {{ $labels.job }}'
-          description: 'Prometheus가 {{ $labels.job }} 서비스의 메트릭을 1분 이상 수 집하지 못했습니다.'
+          summary: '서비스 메트릭 수집 실패: {{ $labels.service_name }}'
+          description: 'Prometheus가 {{ $labels.service_name }} 서비스의 메트릭을 1분 이상 수집하지 못했습니다.'
         labels:
           severity: critical
           source: prometheus
