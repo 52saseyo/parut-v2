@@ -81,7 +81,7 @@ groups:
                 type: loki
                 uid: loki
               editorMode: code
-              expr: 'sum(count_over_time({service_name=~".+", level="error"}[5m])) or vector(0)'
+              expr: 'sum by (service_name) (count_over_time({service_name=~".*-service", level="error"}[5m]))'
               intervalMs: 1000
               maxDataPoints: 43200
               queryType: instant
@@ -95,7 +95,7 @@ groups:
               conditions:
                 - evaluator:
                     params:
-                      - 5
+                      - 2
                     type: gt
                   operator:
                     type: and
@@ -120,8 +120,8 @@ groups:
         execErrState: Alerting
         for: 1m
         annotations:
-          summary: '최근 5분간 ERROR 로그 급증'
-          description: '전체 서비스에서 최근 5분간 ERROR 로그가 5건을 초과한 상태가 1분 이상 지속됐습니다.'
+          summary: '{{ $labels.service_name }} ERROR 로그 급증'
+          description: '{{ $labels.service_name }}에서 최근 5분간 ERROR 로그가 3건 이상 발생한 상태가 1분 이상 지속됐습니다.'
         labels:
           severity: warning
           source: loki
