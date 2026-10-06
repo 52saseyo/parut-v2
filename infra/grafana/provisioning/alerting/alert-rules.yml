@@ -140,7 +140,7 @@ groups:
                 type: prometheus
                 uid: prometheus
               editorMode: code
-              expr: 'label_replace(avg_over_time(process_cpu_usage{job=~".*-service"}[1m]) * 100, "service_name", "$1", "job", "(.*)")'
+              expr: 'label_replace((avg_over_time(process_cpu_usage{job=~".*-service"}[1m]) * 100) and on(job, instance) (application_ready_time_seconds{job=~".*-service"} > 0), "service_name", "$1", "job", "(.*)")'
               instant: true
               intervalMs: 15000
               legendFormat: '{{service_name}}'
