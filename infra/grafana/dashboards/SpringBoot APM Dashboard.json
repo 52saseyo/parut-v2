@@ -2,9 +2,8 @@
   "apiVersion": "dashboard.grafana.app/v2",
   "kind": "Dashboard",
   "metadata": {
-    "name": "X034JGT7Gz",
+    "name": "springboot-apm",
     "namespace": "default",
-    "uid": "da49f533-29fe-4a14-8321-b028acc8b7a9",
     "resourceVersion": "1790049464689998",
     "generation": 3,
     "creationTimestamp": "2026-09-21T11:37:01Z",
