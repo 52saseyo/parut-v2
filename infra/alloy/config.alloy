@@ -8,10 +8,40 @@ discovery.docker "containers" {
   refresh_interval = "5s"
 }
 
+discovery.relabel "docker_logs" {
+  targets = []
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "service_name"
+  }
+}
+
 loki.source.docker "containers" {
-  host       = "unix:///var/run/docker.sock"
-  targets    = discovery.docker.containers.targets
-  labels     = { "platform" = "docker" }
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.containers.targets
+  labels        = { "platform" = "docker" }
+  relabel_rules = discovery.relabel.docker_logs.rules
+  forward_to    = [loki.process.application_logs.receiver]
+}
+
+loki.process "application_logs" {
+  stage.regex {
+    expression = "(?i)(?:^|\\s)(?P<level>TRACE|DEBUG|INFO|WARN|ERROR)(?:\\s|$)"
+  }
+
+  stage.template {
+    source   = "level"
+    template = "{{ ToLower .Value }}"
+  }
+
+  stage.labels {
+    values = {
+      level = "level",
+    }
+  }
+
   forward_to = [loki.write.local.receiver]
 }
 
