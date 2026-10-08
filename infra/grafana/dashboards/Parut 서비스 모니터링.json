@@ -160,8 +160,8 @@
         "kind": "Panel",
         "spec": {
           "id": 2,
-          "title": "서비스별 에러율",
-          "description": "",
+          "title": "서비스별 에러 응답 (req/s)",
+          "description": "서비스별 5xx / 4xx 응답 합계(발생하지 않으면 0). 4xx에는 409(재고 부족·충돌 등) 같은 정상 비즈니스 응답도 포함되므로 5xx와 구분해서 본다. 상태 코드별 상세는 Explore에서 by (status)로 확인한다.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -179,12 +179,33 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "   sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[1m])) by (job)",
-                        "legendFormat": "__auto",
+                        "expr": "sum(rate(http_server_requests_seconds_count{job=~\".*-service\", status=~\"5..\"}[1m])) by (job) or (sum(rate(http_server_requests_seconds_count{job=~\".*-service\"}[1m])) by (job) * 0)",
+                        "legendFormat": "{{job}} 5xx",
                         "range": true
                       }
                     },
                     "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "prometheus"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "sum(rate(http_server_requests_seconds_count{job=~\".*-service\", status=~\"4..\"}[1m])) by (job) or (sum(rate(http_server_requests_seconds_count{job=~\".*-service\"}[1m])) by (job) * 0)",
+                        "legendFormat": "{{job}} 4xx",
+                        "range": true
+                      }
+                    },
+                    "refId": "B",
                     "hidden": false
                   }
                 }
@@ -207,12 +228,14 @@
                 },
                 "tooltip": {
                   "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
+                  "mode": "multi",
+                  "sort": "desc"
                 }
               },
               "fieldConfig": {
                 "defaults": {
+                  "unit": "reqps",
+                  "noValue": "0",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
