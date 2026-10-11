@@ -17,6 +17,8 @@ scrape_configs:
       - targets: ['user-service:8080']
 
   - job_name: 'product-service'
+    scrape_interval: 1s
+    scrape_timeout: 800ms
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['product-service:8080']
