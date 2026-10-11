@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class TimeDealSubscriptionServiceTest {
@@ -33,15 +34,15 @@ class TimeDealSubscriptionServiceTest {
 
     @Test
     void subscribeCreatesSubscriptionWhenMissing() {
-        when(repository.findByUserIdAndTimeDealId(userId, timeDealId)).thenReturn(Optional.empty());
-        when(repository.save(any(TimeDealNotificationSubscription.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        var subscription = TimeDealNotificationSubscription.subscribe(userId, timeDealId);
+        when(repository.findByUserIdAndTimeDealId(userId, timeDealId)).thenReturn(Optional.of(subscription));
 
         var result = service.subscribe(new SubscribeTimeDealCommand(userId, "CUSTOMER", timeDealId));
 
         assertEquals(timeDealId, result.timeDealId());
         assertTrue(result.subscribed());
-        verify(repository).save(any(TimeDealNotificationSubscription.class));
+        verify(repository).upsertSubscription(any(UUID.class), eq(userId), eq(timeDealId));
+        verify(repository, never()).save(any(TimeDealNotificationSubscription.class));
     }
 
     @Test
@@ -52,19 +53,19 @@ class TimeDealSubscriptionServiceTest {
         var result = service.subscribe(new SubscribeTimeDealCommand(userId, "CUSTOMER", timeDealId));
 
         assertTrue(result.subscribed());
+        verify(repository).upsertSubscription(any(UUID.class), eq(userId), eq(timeDealId));
         verify(repository, never()).save(any());
     }
 
     @Test
     void cancelledSubscriptionCanBeReactivated() {
-        var existing = TimeDealNotificationSubscription.subscribe(userId, timeDealId);
-        existing.cancel(Instant.parse("2026-09-21T00:00:00Z"));
-        when(repository.findByUserIdAndTimeDealId(userId, timeDealId)).thenReturn(Optional.of(existing));
+        var reactivated = TimeDealNotificationSubscription.subscribe(userId, timeDealId);
+        when(repository.findByUserIdAndTimeDealId(userId, timeDealId)).thenReturn(Optional.of(reactivated));
 
         var result = service.subscribe(new SubscribeTimeDealCommand(userId, "CUSTOMER", timeDealId));
 
         assertTrue(result.subscribed());
-        assertNull(existing.getDeletedAt());
+        verify(repository).upsertSubscription(any(UUID.class), eq(userId), eq(timeDealId));
         verify(repository, never()).save(any());
     }
 
