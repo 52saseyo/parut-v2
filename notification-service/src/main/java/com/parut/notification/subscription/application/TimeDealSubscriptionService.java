@@ -29,12 +29,19 @@ public class TimeDealSubscriptionService
     @Override
     public TimeDealSubscriptionResult subscribe(SubscribeTimeDealCommand command){
         authorizationChecker.requireCustomer(command.requesterRole());
+
+        timeDealSubscriptionRepository.upsertSubscription(
+                UUID.randomUUID(),
+                command.userId(),
+                command.timeDealId()
+        );
+
         TimeDealNotificationSubscription subscription =
-                timeDealSubscriptionRepository.findByUserIdAndTimeDealId(
-                                command.userId(), command.timeDealId())
-                        .map(this::resubscribe)
-                        .orElseGet(() -> createSubscription(
-                                command.userId(), command.timeDealId()));
+                timeDealSubscriptionRepository
+                        .findByUserIdAndTimeDealId(command.userId(), command.timeDealId())
+                        .orElseThrow(() -> new BusinessException(
+                                ErrorCode.TIME_DEAL_SUBSCRIPTION_NOT_FOUND
+                        ));
 
         return new TimeDealSubscriptionResult(
                 subscription.getTimeDealId(),
@@ -80,19 +87,5 @@ public class TimeDealSubscriptionService
             throw new BusinessException(ErrorCode.NOTIFICATION_SUBSCRIPTION_TIME_DEAL_ID_REQUIRED);
         }
         return timeDealSubscriptionRepository.findActiveSubscriberIds(timeDealId);
-    }
-
-
-    private TimeDealNotificationSubscription resubscribe(TimeDealNotificationSubscription subscription){
-        subscription.resubscribe();
-        return subscription;
-    }
-
-    private TimeDealNotificationSubscription createSubscription(UUID userId, UUID timeDealId){
-        TimeDealNotificationSubscription subscription =
-                TimeDealNotificationSubscription.subscribe(
-                        userId, timeDealId
-                );
-        return timeDealSubscriptionRepository.save(subscription);
     }
 }
