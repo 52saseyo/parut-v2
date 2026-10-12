@@ -4,6 +4,7 @@ import com.parut.notification.global.exception.BusinessException;
 import com.parut.notification.global.exception.ErrorCode;
 import com.parut.notification.subscription.application.authorization.TimeDealSubscriptionAuthorizationChecker;
 import com.parut.notification.subscription.application.dto.SubscribeTimeDealCommand;
+import com.parut.notification.subscription.application.dto.TimeDealSubscriptionResult;
 import com.parut.notification.subscription.domain.TimeDealNotificationSubscription;
 import com.parut.notification.subscription.infrastructure.persistence.TimeDealSubscriptionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,10 +35,12 @@ class TimeDealSubscriptionServiceTest {
 
     @Test
     void subscribeCreatesSubscriptionWhenMissing() {
-        var subscription = TimeDealNotificationSubscription.subscribe(userId, timeDealId);
+        TimeDealNotificationSubscription subscription =
+                TimeDealNotificationSubscription.subscribe(userId, timeDealId);
         when(repository.findByUserIdAndTimeDealId(userId, timeDealId)).thenReturn(Optional.of(subscription));
 
-        var result = service.subscribe(new SubscribeTimeDealCommand(userId, "CUSTOMER", timeDealId));
+        TimeDealSubscriptionResult result =
+                service.subscribe(new SubscribeTimeDealCommand(userId, "CUSTOMER", timeDealId));
 
         assertEquals(timeDealId, result.timeDealId());
         assertTrue(result.subscribed());
@@ -47,10 +50,12 @@ class TimeDealSubscriptionServiceTest {
 
     @Test
     void repeatedSubscribeReusesExistingSubscription() {
-        var existing = TimeDealNotificationSubscription.subscribe(userId, timeDealId);
+        TimeDealNotificationSubscription existing =
+                TimeDealNotificationSubscription.subscribe(userId, timeDealId);
         when(repository.findByUserIdAndTimeDealId(userId, timeDealId)).thenReturn(Optional.of(existing));
 
-        var result = service.subscribe(new SubscribeTimeDealCommand(userId, "CUSTOMER", timeDealId));
+        TimeDealSubscriptionResult result =
+                service.subscribe(new SubscribeTimeDealCommand(userId, "CUSTOMER", timeDealId));
 
         assertTrue(result.subscribed());
         verify(repository).upsertSubscription(any(UUID.class), eq(userId), eq(timeDealId));
@@ -59,10 +64,12 @@ class TimeDealSubscriptionServiceTest {
 
     @Test
     void cancelledSubscriptionCanBeReactivated() {
-        var reactivated = TimeDealNotificationSubscription.subscribe(userId, timeDealId);
+        TimeDealNotificationSubscription reactivated =
+                TimeDealNotificationSubscription.subscribe(userId, timeDealId);
         when(repository.findByUserIdAndTimeDealId(userId, timeDealId)).thenReturn(Optional.of(reactivated));
 
-        var result = service.subscribe(new SubscribeTimeDealCommand(userId, "CUSTOMER", timeDealId));
+        TimeDealSubscriptionResult result =
+                service.subscribe(new SubscribeTimeDealCommand(userId, "CUSTOMER", timeDealId));
 
         assertTrue(result.subscribed());
         verify(repository).upsertSubscription(any(UUID.class), eq(userId), eq(timeDealId));
@@ -71,7 +78,8 @@ class TimeDealSubscriptionServiceTest {
 
     @Test
     void unsubscribeIsIdempotentForExistingSubscription() {
-        var existing = TimeDealNotificationSubscription.subscribe(userId, timeDealId);
+        TimeDealNotificationSubscription existing =
+                TimeDealNotificationSubscription.subscribe(userId, timeDealId);
         when(repository.findByUserIdAndTimeDealId(userId, timeDealId)).thenReturn(Optional.of(existing));
 
         service.unsubscribe(userId, "CUSTOMER", timeDealId);
@@ -84,7 +92,7 @@ class TimeDealSubscriptionServiceTest {
 
     @Test
     void sellerCannotSubscribe() {
-        var error = assertThrows(BusinessException.class,
+        BusinessException error = assertThrows(BusinessException.class,
                 () -> service.subscribe(new SubscribeTimeDealCommand(userId, "SELLER", timeDealId)));
 
         assertEquals(ErrorCode.TIME_DEAL_SUBSCRIPTION_ACCESS_DENIED, error.getErrorCode());
