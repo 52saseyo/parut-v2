@@ -1,0 +1,279 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="정산 부분 성공 및 동시 요청 정합성 검증">
+      <boolProp name="TestPlan.serialize_threadgroups">true</boolProp>
+    </TestPlan>
+    <hashTree>
+      <ResultCollector guiclass="SimpleDataWriter" testclass="ResultCollector" testname="수동 대조용 응답 원본 저장" enabled="true">
+        <boolProp name="ResultCollector.error_logging">false</boolProp>
+        <objProp>
+          <name>saveConfig</name>
+          <value class="SampleSaveConfiguration">
+            <time>true</time>
+            <timestamp>true</timestamp>
+            <success>true</success>
+            <label>true</label>
+            <code>true</code>
+            <message>true</message>
+            <threadName>true</threadName>
+            <xml>true</xml>
+            <responseData>true</responseData>
+            <requestHeaders>true</requestHeaders>
+            <assertions>true</assertions>
+            <assertionsResultsToSave>0</assertionsResultsToSave>
+          </value>
+        </objProp>
+        <stringProp name="filename">${__P(integrityResponseFile,)}</stringProp>
+      </ResultCollector>
+      <hashTree />
+      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="관리자 요청 헤더">
+        <collectionProp name="HeaderManager.headers">
+          <elementProp name="Content-Type" elementType="Header">
+            <stringProp name="Header.name">Content-Type</stringProp>
+            <stringProp name="Header.value">application/json</stringProp>
+          </elementProp>
+          <elementProp name="X-User-Id" elementType="Header">
+            <stringProp name="Header.name">X-User-Id</stringProp>
+            <stringProp name="Header.value">${adminId}</stringProp>
+          </elementProp>
+          <elementProp name="X-User-Role" elementType="Header">
+            <stringProp name="Header.name">X-User-Role</stringProp>
+            <stringProp name="Header.value">ADMIN</stringProp>
+          </elementProp>
+        </collectionProp>
+      </HeaderManager>
+      <hashTree />
+      <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="정산 ID와 관리자 설정" enabled="true">
+        <stringProp name="cacheKey">true</stringProp>
+        <stringProp name="filename" />
+        <stringProp name="parameters" />
+        <stringProp name="scriptLanguage">groovy</stringProp>
+        <stringProp name="script">
+if (!(ctx.getThreadGroup().getName() in ['partial', 'same2', 'overlap2', 'same10'])) return
+String scenario = ctx.getThreadGroup().getName()
+// 시드의 시작 번호와 회차당 고유 정산 수에 맞춰 ID를 배정한다.
+def range = ['partial': [1, 50], 'same2': [1001, 50], 'overlap2': [2001, 79], 'same10': [3001, 50]][scenario]
+if (range == null) throw new IllegalStateException('알 수 없는 시나리오입니다.')
+vars.put('scenario', scenario)
+int round = vars.getIteration()
+int adminIndex = ctx.getThreadNum()
+long first = range[0] + (round - 1) * range[1]
+if (scenario == 'overlap2' &amp;&amp; adminIndex == 1) first += 29
+List ids = (first..&lt;(first + 50)).collect {
+    String.format(java.util.Locale.ROOT, 'a0000000-0000-4000-8000-%012d', it)
+}
+// 일부 회차는 관리자 간 처리 순서를 달리해 같은 순서에만 의존하지 않도록 한다.
+if (round % 2 == 0 &amp;&amp; adminIndex % 2 == 1) ids = ids.reverse()
+vars.put('adminId', String.format(java.util.Locale.ROOT, '00000000-0000-4000-8000-%012d', 101 + adminIndex))
+vars.putObject('expectedIds', ids)
+vars.put('settlementIds', ids.collect { '"' + it + '"' }.join(','))
+</stringProp>
+      </JSR223PreProcessor>
+      <hashTree />
+      <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="결과 라벨 설정" enabled="true">
+        <stringProp name="cacheKey">true</stringProp>
+        <stringProp name="filename" />
+        <stringProp name="parameters" />
+        <stringProp name="scriptLanguage">groovy</stringProp>
+        <stringProp name="script">if (!(ctx.getThreadGroup().getName() in ['partial', 'same2', 'overlap2', 'same10'])) return
+prev.setSampleLabel('정합성 - ' + vars.get('scenario'))</stringProp>
+      </JSR223PostProcessor>
+      <hashTree />
+      <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="HTTP 응답과 항목 결과 확인" enabled="true">
+        <stringProp name="cacheKey">true</stringProp>
+        <stringProp name="filename" />
+        <stringProp name="parameters" />
+        <stringProp name="scriptLanguage">groovy</stringProp>
+        <stringProp name="script">
+if (!(ctx.getThreadGroup().getName() in ['partial', 'same2', 'overlap2', 'same10'])) return
+try {
+    def body = new groovy.json.JsonSlurper().parseText(prev.getResponseDataAsString())
+    if (prev.getResponseCode() != '200' || body.code != 'OK' || !(body.data instanceof List)) {
+        throw new IllegalStateException('HTTP 상태 또는 응답 형식이 다릅니다.')
+    }
+    List results = body.data
+    if (results.size() != 50 || results.collect { it.settlementId } != vars.getObject('expectedIds')) {
+        throw new IllegalStateException('항목 수, ID 또는 응답 순서가 다릅니다.')
+    }
+    results.each { item -&gt;
+        if (!(item.result in ['SUCCESS', 'FAILED'])) throw new IllegalStateException('알 수 없는 항목 결과입니다.')
+        if (item.result == 'SUCCESS' &amp;&amp; (item.status != 'COMPLETED' || !item.settledAt || !item.orderItemId)) {
+            throw new IllegalStateException('성공 항목의 완료 정보가 없습니다.')
+        }
+        if (item.result == 'FAILED' &amp;&amp; (item.status != null || item.settledAt != null || item.orderItemId != null)) {
+            throw new IllegalStateException('실패 항목에 완료 정보가 있습니다.')
+        }
+        if (vars.get('scenario') == 'partial') {
+            String expected = item.settlementId.substring(24).toLong() % 2 == 1 ? 'SUCCESS' : 'FAILED'
+            if (item.result != expected) throw new IllegalStateException('부분 성공 대상이 다릅니다.')
+        }
+    }
+    def header = prev.getRequestHeaders() =~ /(?im)^X-User-Id:\s*(\S+)/
+    if (!header.find() || header.group(1) != vars.get('adminId')) {
+        throw new IllegalStateException('관리자 요청 헤더가 다릅니다.')
+    }
+} catch (Exception e) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage(e.getMessage())
+}
+</stringProp>
+      </JSR223Assertion>
+      <hashTree />
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="partial" enabled="true">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="정산 완료 API 요청" enabled="true">
+          <stringProp name="HTTPSampler.domain">${__P(orderHost,localhost)}</stringProp>
+          <stringProp name="HTTPSampler.port">${__P(orderPort,8083)}</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.path">/api/v1/settlements/complete</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+          <stringProp name="HTTPSampler.method">PATCH</stringProp>
+          <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+          <stringProp name="HTTPSampler.response_timeout">30000</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{"settlementIds":[${settlementIds}]}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree />
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="same2" enabled="true">
+        <intProp name="ThreadGroup.num_threads">2</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController">
+          <stringProp name="LoopController.loops">5</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="정산 완료 API 요청" enabled="true">
+          <stringProp name="HTTPSampler.domain">${__P(orderHost,localhost)}</stringProp>
+          <stringProp name="HTTPSampler.port">${__P(orderPort,8083)}</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.path">/api/v1/settlements/complete</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+          <stringProp name="HTTPSampler.method">PATCH</stringProp>
+          <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+          <stringProp name="HTTPSampler.response_timeout">30000</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{"settlementIds":[${settlementIds}]}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="관리자 요청 출발 동기화" enabled="true">
+            <intProp name="groupSize">0</intProp>
+            <longProp name="timeoutInMs">10000</longProp>
+          </SyncTimer>
+          <hashTree />
+        </hashTree>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="overlap2" enabled="true">
+        <intProp name="ThreadGroup.num_threads">2</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController">
+          <stringProp name="LoopController.loops">5</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="정산 완료 API 요청" enabled="true">
+          <stringProp name="HTTPSampler.domain">${__P(orderHost,localhost)}</stringProp>
+          <stringProp name="HTTPSampler.port">${__P(orderPort,8083)}</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.path">/api/v1/settlements/complete</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+          <stringProp name="HTTPSampler.method">PATCH</stringProp>
+          <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+          <stringProp name="HTTPSampler.response_timeout">30000</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{"settlementIds":[${settlementIds}]}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="관리자 요청 출발 동기화" enabled="true">
+            <intProp name="groupSize">0</intProp>
+            <longProp name="timeoutInMs">10000</longProp>
+          </SyncTimer>
+          <hashTree />
+        </hashTree>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="same10" enabled="true">
+        <intProp name="ThreadGroup.num_threads">10</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController">
+          <stringProp name="LoopController.loops">5</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="정산 완료 API 요청" enabled="true">
+          <stringProp name="HTTPSampler.domain">${__P(orderHost,localhost)}</stringProp>
+          <stringProp name="HTTPSampler.port">${__P(orderPort,8083)}</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.path">/api/v1/settlements/complete</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+          <stringProp name="HTTPSampler.method">PATCH</stringProp>
+          <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+          <stringProp name="HTTPSampler.response_timeout">30000</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{"settlementIds":[${settlementIds}]}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="관리자 요청 출발 동기화" enabled="true">
+            <intProp name="groupSize">0</intProp>
+            <longProp name="timeoutInMs">10000</longProp>
+          </SyncTimer>
+          <hashTree />
+        </hashTree>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
