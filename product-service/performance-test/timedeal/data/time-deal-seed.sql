@@ -5,6 +5,8 @@
 
 BEGIN;
 
+DELETE FROM product_schema.p_outbox_events;
+
 -- 이전 실행에서 남은 구매 이력과 재고를 먼저 정리한다.
 DELETE FROM product_schema.p_time_deal_purchases
 WHERE time_deal_id IN (
