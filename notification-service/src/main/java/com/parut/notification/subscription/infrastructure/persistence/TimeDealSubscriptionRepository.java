@@ -29,4 +29,35 @@ public interface TimeDealSubscriptionRepository extends JpaRepository<TimeDealNo
     List<UUID> findActiveSubscriberIds(
             @Param("timeDealId") UUID timeDealId
     );
+
+
+    @Modifying
+    @Query(value = """
+    insert into notification_schema.p_time_deal_notification_subscriptions (
+        id,
+        user_id,
+        time_deal_id,
+        created_at,
+        updated_at,
+        deleted_at
+    )
+    values (
+        :id,
+        :userId,
+        :timeDealId,
+        current_timestamp,
+        current_timestamp,
+        null
+    )
+    on conflict on constraint uk_time_deal_subscriptions_user_deal
+    do update set
+        deleted_at = null,
+        updated_at = current_timestamp
+    """, nativeQuery = true)
+    void upsertSubscription(
+            @Param("id") UUID id,
+            @Param("userId") UUID userId,
+            @Param("timeDealId") UUID timeDealId
+    );
+
 }
