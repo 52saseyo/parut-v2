@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="일반 재고 선점 Load Test">
+      <stringProp name="TestPlan.comments">평상시 부하에서 일반 재고 선점이 정상 수치(응답 시간·에러율·재고 정합성)를 내는지 확인한다. 실제 주문처럼 200개 분산 상품(CSV)에 요청을 나눠 보내고, 고정 처리량(targetRps, reserve 기준)을 duration 동안 유지한다. 주문 1건 = reserve 1회 후 confirmRatio% 확정(confirm), restoreRatio% 취소(restore), 나머지는 결제하지 않고 방치해 선점 만료 스케줄러가 테스트 중에 함께 동작하도록 한다. 여기서 얻은 수치가 Spike/Stress Test의 기준선이 된다.</stringProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="productHost" elementType="Argument">
+            <stringProp name="Argument.name">productHost</stringProp>
+            <stringProp name="Argument.value">${__P(productHost,localhost)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="productPort" elementType="Argument">
+            <stringProp name="Argument.name">productPort</stringProp>
+            <stringProp name="Argument.value">${__P(productPort,8082)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="serviceKey" elementType="Argument">
+            <stringProp name="Argument.name">serviceKey</stringProp>
+            <stringProp name="Argument.value">${__P(serviceKey,local-dev-key)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="hotProductId" elementType="Argument">
+            <stringProp name="Argument.name">hotProductId</stringProp>
+            <stringProp name="Argument.value">${__P(hotProductId,55555555-5555-4555-8555-555555555555)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="confirmRatio" elementType="Argument">
+            <stringProp name="Argument.name">confirmRatio</stringProp>
+            <stringProp name="Argument.value">${__P(confirmRatio,70)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="restoreRatio" elementType="Argument">
+            <stringProp name="Argument.name">restoreRatio</stringProp>
+            <stringProp name="Argument.value">${__P(restoreRatio,20)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+      <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults">
+        <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+          <collectionProp name="Arguments.arguments"/>
+        </elementProp>
+        <stringProp name="HTTPSampler.domain">${productHost}</stringProp>
+        <stringProp name="HTTPSampler.port">${productPort}</stringProp>
+        <stringProp name="HTTPSampler.protocol">http</stringProp>
+        <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+        <stringProp name="HTTPSampler.response_timeout">30000</stringProp>
+      </ConfigTestElement>
+      <hashTree/>
+      <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="분산 상품 CSV">
+        <stringProp name="delimiter">,</stringProp>
+        <stringProp name="fileEncoding">UTF-8</stringProp>
+        <stringProp name="filename">${__P(productCsv,../data/load-products.csv)}</stringProp>
+        <boolProp name="ignoreFirstLine">false</boolProp>
+        <boolProp name="quotedData">false</boolProp>
+        <boolProp name="recycle">true</boolProp>
+        <stringProp name="shareMode">shareMode.all</stringProp>
+        <boolProp name="stopThread">false</boolProp>
+        <stringProp name="variableNames">csvProductId</stringProp>
+      </CSVDataSet>
+      <hashTree/>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Load - 분산 상품 고정 처리량">
+        <stringProp name="ThreadGroup.num_threads">${__P(threads,10)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampUp,60)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">-1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+        <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <stringProp name="ThreadGroup.duration">${__P(duration,600)}</stringProp>
+        <stringProp name="ThreadGroup.delay">0</stringProp>
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="내부 재고 API Header Manager">
+          <collectionProp name="HeaderManager.headers">
+            <elementProp name="Content-Type" elementType="Header">
+              <stringProp name="Header.name">Content-Type</stringProp>
+              <stringProp name="Header.value">application/json</stringProp>
+            </elementProp>
+            <elementProp name="X-Service-Key" elementType="Header">
+              <stringProp name="Header.name">X-Service-Key</stringProp>
+              <stringProp name="Header.value">${serviceKey}</stringProp>
+            </elementProp>
+          </collectionProp>
+        </HeaderManager>
+        <hashTree/>
+        <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="reserve 결과 저장 및 errorCode 라벨링">
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="script">if (prev.getSampleLabel() == &quot;reserve&quot;) {
+    vars.put(&quot;reserveOk&quot;, prev.isSuccessful() ? &quot;true&quot; : &quot;false&quot;)
+}
+try {
+    def json = new groovy.json.JsonSlurper().parseText(prev.getResponseDataAsString())
+    def code = json.code ?: &quot;UNKNOWN&quot;
+    prev.setSampleLabel(prev.getSampleLabel() + &quot; [&quot; + code + &quot;]&quot;)
+} catch (e) {
+    prev.setSampleLabel(prev.getSampleLabel() + &quot; [PARSE_ERROR]&quot;)
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223PostProcessor>
+        <hashTree/>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="reserve">
+          <stringProp name="HTTPSampler.path">/api/v1/internal/stocks/reserve</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{&quot;orderId&quot;:&quot;${orderId}&quot;,&quot;items&quot;:[{&quot;productId&quot;:&quot;${productId}&quot;,&quot;orderItemId&quot;:&quot;${orderItemId}&quot;,&quot;quantity&quot;:1}]}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="주문 ID 생성, 대상 상품 및 후속 동작 결정">
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="parameters">distributed</stringProp>
+            <stringProp name="script">import java.util.concurrent.ThreadLocalRandom
+
+// Parameters: distributed(CSV 분산 상품) | hot(단일 핫 상품)
+def target = (Parameters ?: &quot;distributed&quot;).trim()
+vars.put(&quot;orderId&quot;, UUID.randomUUID().toString())
+vars.put(&quot;orderItemId&quot;, UUID.randomUUID().toString())
+vars.put(&quot;productId&quot;, target == &quot;hot&quot; ? vars.get(&quot;hotProductId&quot;) : vars.get(&quot;csvProductId&quot;))
+vars.put(&quot;reserveOk&quot;, &quot;false&quot;)
+
+int confirmRatio = vars.get(&quot;confirmRatio&quot;) as int
+int restoreRatio = vars.get(&quot;restoreRatio&quot;) as int
+int r = ThreadLocalRandom.current().nextInt(100)
+vars.put(&quot;nextAction&quot;, r &lt; confirmRatio ? &quot;confirm&quot; : (r &lt; confirmRatio + restoreRatio ? &quot;restore&quot; : &quot;abandon&quot;))</stringProp>
+            <stringProp name="scriptLanguage">groovy</stringProp>
+          </JSR223PreProcessor>
+          <hashTree/>
+          <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="목표 처리량 (reserve 기준 targetRps)">
+            <intProp name="calcMode">2</intProp>
+            <stringProp name="throughput">${__jexl3(${__P(targetRps,3)} * 60)}</stringProp>
+          </ConstantThroughputTimer>
+          <hashTree/>
+        </hashTree>
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="결제 완료 → confirm">
+          <stringProp name="IfController.condition">${__groovy(vars.get(&quot;reserveOk&quot;) == &quot;true&quot; &amp;&amp; vars.get(&quot;nextAction&quot;) == &quot;confirm&quot;)}</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+          <boolProp name="IfController.useExpression">true</boolProp>
+        </IfController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="confirm">
+            <stringProp name="HTTPSampler.path">/api/v1/internal/stocks/confirm</stringProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">{&quot;orderId&quot;:&quot;${orderId}&quot;,&quot;items&quot;:[{&quot;productId&quot;:&quot;${productId}&quot;,&quot;orderItemId&quot;:&quot;${orderItemId}&quot;}]}</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+        </hashTree>
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="주문 취소 → restore">
+          <stringProp name="IfController.condition">${__groovy(vars.get(&quot;reserveOk&quot;) == &quot;true&quot; &amp;&amp; vars.get(&quot;nextAction&quot;) == &quot;restore&quot;)}</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+          <boolProp name="IfController.useExpression">true</boolProp>
+        </IfController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="restore">
+            <stringProp name="HTTPSampler.path">/api/v1/internal/stocks/restore</stringProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">{&quot;orderId&quot;:&quot;${orderId}&quot;,&quot;items&quot;:[{&quot;productId&quot;:&quot;${productId}&quot;,&quot;orderItemId&quot;:&quot;${orderItemId}&quot;}]}</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
