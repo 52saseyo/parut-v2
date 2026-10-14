@@ -316,13 +316,17 @@ jmeter -n -t performance-test/product_stock/jmeter/stress-test.jmx -JmaxThreads=
 
 ### 요약
 
-| 테스트 | 부하 | reserve P95 | 에러 | 정합성 mismatch | 판정 |
-| --- | --- | ---: | ---: | ---: | --- |
-| Load | 3 TPS, 10분 | 31ms | 0% | 0건 | 합격 |
-| Spike (distributed) | 3 → 30 → 3 TPS | 20ms | 0% | 0건 | 합격 |
-| Spike (hot) | 3 → 30 → 3 TPS | 17ms | 0% | 0건 | 합격 |
-| Stress (distributed) | 최대 300 Threads | 한계 약 **300 TPS** | 0% | 0건 | 이벤트 피크 대비 약 10배 |
-| Stress (hot) | 최대 300 Threads | 한계 약 **200 TPS** | 0% | 0건 | 이벤트 피크 대비 약 6~7배 |
+| 테스트 | 전체 처리량 (Grafana) | reserve TPS | 평균 응답시간 (Grafana) | reserve P95 (JMeter) | 에러 | 정합성 mismatch | 판정 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Load | 약 6 req/s | 3 | 약 10~15ms | 31ms | 0% | 0건 | 합격 |
+| Spike (distributed) | 피크 약 55 req/s | 피크 30 | 약 5~7ms | 20ms | 0% | 0건 | 합격 |
+| Spike (hot) | 피크 약 53 req/s | 피크 30 | 약 5~6ms | 17ms | 0% | 0건 | 합격 |
+| Stress (distributed) | 최대 약 600 req/s | 최대 약 **300** | 약 350~400ms | 1.3~1.4초 (한계 초과, 대기 포함) | 0% | 0건 | 이벤트 피크 대비 약 10배 |
+| Stress (hot) | 최대 약 400 req/s | 최대 약 **200** | 약 520ms | 1.4~1.6초 (한계 초과, 대기 포함) | 0% | 0건 | 이벤트 피크 대비 약 6~7배 |
+
+- 전체 처리량·평균 응답시간은 Grafana(서버 기준, PR 이미지와 동일), P95는 JMeter(클라이언트 기준, Tomcat 대기 포함) 값이다.
+- 전체 처리량은 reserve + confirm + restore 합계라 reserve TPS의 약 2배다.
+- Stress는 300 Threads 구간 값이다. 실제 처리 시간은 약 15ms로 같고, 한계를 넘은 요청이 커넥션 앞에서 대기해 응답시간이 늘어난다. P95 200ms 이내 구간은 distributed Threads 약 55, hot Threads 약 40까지다.
 
 ### 3. Load
 
@@ -358,8 +362,18 @@ jmeter -n -t performance-test/product_stock/jmeter/stress-test.jmx -JmaxThreads=
 | 전체 요청 / 에러 | 383,415건 / 0건 | 270,915건 / 0건 |
 | verify | 202,014건 일치 | 142,574건 일치 |
 
-- **병목은 DB 커넥션 풀(10개)이다.** 한계 이후에는 Threads가 늘어도 처리량은 그대로이고, 커넥션 풀 active 10/10에 pending이 약 190까지 쌓인 뒤 유지됐다. (Tomcat 기본 요청 스레드 200개 중 10개가 커넥션을 쓰고 나머지가 대기한 것으로 보인다.)
-- hot은 같은 재고 row 락을 순서대로 기다리므로 distributed보다 한계가 약 1/3 낮다.
+한계 시점 지표 (Prometheus):
+
+| 지표 | distributed | hot |
+| --- | ---: | ---: |
+| 커넥션 1회 사용 시간 | 약 15ms | 약 25ms |
+| 커넥션 획득 대기 시간 | 250~335ms | 약 500ms |
+| 커넥션 풀 | active 10/10, pending 약 190 | active 10/10, pending 약 190 |
+| CPU (Docker 4코어 전체) | 92~94% | 약 64% |
+
+- **distributed**: 한계 이후 Threads가 늘어도 처리량은 그대로이고 커넥션 대기만 쌓였다. 다만 같은 시점에 CPU도 94%에 가까웠다. (Postgres, 서비스 5개, JMeter가 같은 PC에서 실행) 커넥션 풀 크기(10)와 로컬 PC 자원 중 무엇이 원인인지는 **풀 크기를 늘린 재측정으로 확인**한다.
+- **hot**: CPU에 여유가 있는데도 한계가 약 1/3 낮고 커넥션 사용 시간이 더 길다. 커넥션을 잡은 채 **같은 재고 row 락을 기다리는 것**이 원인이다.
+- pending이 약 190에서 멈춘 것은 Tomcat 기본 요청 스레드 200개 중 10개가 커넥션을 쓰고 나머지가 대기하기 때문이다.
 - 한계를 넘어도 에러 없이 대기 후 처리됐고, 수십만 건에서도 정합성이 유지됐다.
 
 ### 결론
@@ -371,4 +385,4 @@ jmeter -n -t performance-test/product_stock/jmeter/stress-test.jmx -JmaxThreads=
 ### 개선 후보
 
 - **이벤트 로그 `reservation_id` 인덱스 추가**: 만료 스케줄러(`findByReservationIdAndEventType`)와 재고 이력 조회가 이 컬럼으로 조회하는데 인덱스가 없어 로그 전체를 읽는다. 로그가 쌓일수록 느려지며, Stress 직후 남은 예약 약 9천 건의 만료 처리가 오래 걸린 것도 이 영향으로 보인다.
-- **커넥션 풀 크기**: 처리 한계를 더 올려야 할 때 조정 대상이다. 현재 규모에서는 필요 없다.
+- **distributed 병목 확정**: 커넥션 풀을 20으로 늘려 Stress(distributed)를 재측정한다. 처리량이 오르면 커넥션 풀, 그대로면 CPU(로컬 PC 자원)가 병목이다. 현재 규모(30 TPS)에서는 조정이 필요 없다.
