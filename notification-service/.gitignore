@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Performance Test Results ###
+/jmeter.log
+/test-results/
