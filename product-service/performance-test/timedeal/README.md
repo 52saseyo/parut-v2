@@ -28,6 +28,76 @@ psql "$PRODUCT_DATABASE_URL" \
   -f performance-test/timedeal/data/time-deal-seed.sql
 ```
 
+### Redis 재고 초기화
+
+`time-deal-seed.sql`은 PostgreSQL만 초기화한다. Redis 재고 키는 별도로
+초기화해야 하며, product-service가 실행 중이어도 아래 명령으로 처리할 수 있다.
+Redis의 stock key가 없으면 재고 선점 Lua Script가
+`STOCK_NOT_INITIALIZED`를 반환하므로, `SET`까지 실행해야 한다.
+
+아래 명령은 로컬에서 Redis를 product-service 성능 테스트 전용으로 사용하는
+경우에만 실행한다. `FLUSHDB`는 현재 Redis 논리 DB의 모든 키를 삭제하므로
+예약 키, restore 멱등성 키, 스케줄 키도 함께 삭제된다.
+
+```powershell
+# 저장소 루트에서 실행한다.
+
+# 1) DB fixture를 초기화한다.
+docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f -' `
+  < product-service/performance-test/timedeal/data/time-deal-seed.sql
+
+# 2) 로컬 테스트용 Redis의 기존 키를 모두 삭제한다.
+docker compose exec redis redis-cli FLUSHDB
+
+# 3) Load/Stress Test 대상 재고를 DB seed 값과 동일하게 설정한다.
+docker compose exec redis redis-cli SET `
+  timedeal:stock:22222222-2222-4222-8222-222222222222:22222222-2222-4222-8222-222222222223 `
+  100000
+
+# 4) Redis 재고 값을 확인한다. 100000이 출력되어야 한다.
+docker compose exec redis redis-cli GET `
+  timedeal:stock:22222222-2222-4222-8222-222222222222:22222222-2222-4222-8222-222222222223
+```
+
+동시성 테스트를 초기화할 때는 마지막 두 명령의 ID와 수량을 다음 값으로
+바꾼다.
+
+```text
+timeDealId: 11111111-1111-4111-8111-111111111111
+stockId:    11111111-1111-4111-8111-111111111112
+quantity:   100
+```
+
+`FLUSHDB`를 사용할 수 없는 공유 Redis라면 전체 삭제 대신 대상 stock key만
+`SET`으로 덮어쓰고, 테스트 전용 Redis DB 또는 별도 key prefix를 사용하는 것이
+안전하다. Redis 또는 product-service를 매번 재시작할 필요는 없다. 다만
+애플리케이션의 시작 시 초기화 로직은 누락된 키를 애플리케이션 기동 시점에만
+보정하므로, 실행 중인 애플리케이션에서 `FLUSHDB` 후에는 위의 `SET` 명령을
+직접 실행해야 한다.
+
+### 초기화와 애플리케이션 재시작을 분리하는 이유
+
+DB와 Redis를 초기화하는 목적은 이전 테스트의 구매 이력, 차감 재고, 예약 키,
+restore 멱등성 키가 다음 테스트 결과에 섞이지 않도록 모든 테스트를 동일한
+데이터 상태에서 시작하기 위해서다. 반면 product-service를 매번 재시작하지
+않는 것은 애플리케이션을 반드시 Hot 상태로 유지해야 한다는 뜻이 아니라,
+JVM 클래스 로딩·JIT 컴파일·Hikari 커넥션 생성 등 시작 직후의 Cold 상태를
+실제 측정값에 섞지 않기 위해서다.
+
+따라서 기본 측정 절차는 다음과 같다.
+
+```text
+애플리케이션 실행 및 정상 상태 확인
+→ 필요하면 짧은 워밍업
+→ DB seed로 구매·재고 상태 초기화
+→ Redis key 및 테스트 부가 키 초기화
+→ 동일한 애플리케이션 상태에서 성능 테스트 실행
+```
+
+이 방식은 데이터는 매번 동일하게 만들면서도 런타임 상태는 일관되게 유지한다.
+Cold Start 성능 자체를 측정하려는 테스트라면 별도 시나리오로 애플리케이션을
+재시작하고, 모든 실행에서 동일한 재시작·대기 조건을 적용해야 한다.
+
 ## 1. Concurrency Test
 jmeter/concurrency-test.jmx
 
@@ -218,3 +288,207 @@ test-results/load-50rps-baseline-report/index.html
 ```
 
 생성된 HTML Report에서 Average, Throughput, Success/Errors, P95/P99를 확인한다. JTL 파일과 Report 출력 디렉터리가 이미 존재하면 다른 실행 이름을 사용한다.
+
+## 3. Stress Test
+
+최종 Stress Test는 Thread 기반 최대 처리량 측정 방식으로 진행한다. RPS를 일정하게
+주입하는 것이 아니라 동시 Thread를 단계적으로 늘리면서 실제 처리량이 증가하는지,
+어느 시점부터 P95/P99·Hikari Pending이 악화되는지를 확인한다.
+
+### 최종 채택 방식: Thread 기반 최대 처리량 테스트
+
+- JMX: `performance-test/timedeal/jmeter/stress/stress-max-throughput-10threads.jmx`
+- 비교 대상: `stress-max-throughput-10threads.jmx`, `stress-max-throughput-25threads.jmx`, `stress-max-throughput-50threads.jmx`, `stress-max-throughput-100threads.jmx`
+- 설정: 10초 Ramp-up, 90초 실행, Loop Forever
+- Constant Throughput Timer: 사용하지 않음
+- 측정값: 실제 Throughput, 평균 응답시간, P95/P99, 오류율, CPU·JVM·Hikari 지표
+- 실행 전 DB seed와 Redis 재고 키를 초기화하고, 애플리케이션은 재시작하지 않는다.
+
+상세 실행 방법과 명령어는 아래 `Thread 기반 최대 처리량 테스트` 절에 정리했다.
+
+### 실험 기록: RPS 기반 Stress Test (experimental)
+
+아래 JMX들은 RPS 기반 Stress 방식을 검토하며 사용한 실험용 파일이다. 최종
+Stress Test에는 사용하지 않고, 지정 도착률 주입 방식과 부하 생성기 한계를 비교할
+필요가 있을 때 참고용으로 보관한다.
+
+`performance-test/timedeal/jmeter/stress/experimental/rps-based/stress-discovery.jmx`
+
+> `stress/experimental/rps-based`에는 RPS 기반 Stress 방식을 검토하며 사용한 실험용 JMX를 보관한다. 최종 Stress Test는 `stress-max-throughput-*threads.jmx`를 사용하는 Thread 기반 방식으로 진행한다.
+
+RPS 기반 실험에서는 목표 도착률을 단계적으로 높여 현재 환경의 처리량과
+부하 생성기 측정 한계를 확인했다.
+
+| 단계 | 목표 처리량 | 유지 시간 | 시작 시점 |
+|---|---:|---:|---:|
+| 기준 | 50 RPS | 90초 | 0초 |
+| 1단계 | 75 RPS | 90초 | 90초 |
+| 2단계 | 100 RPS | 90초 | 180초 |
+| 3단계 | 150 RPS | 90초 | 270초 |
+| 4단계 | 200 RPS | 90초 | 360초 |
+
+각 단계는 10초 Ramp-up으로 시작하고, 전체 실행 시간은 약 7분 30초다. 단계별 목표값은 Constant Throughput Timer의 samples/minute로 변환되어 JMX에 저장되어 있다.
+
+- 50 RPS: 3,000 samples/minute
+- 75 RPS: 4,500 samples/minute
+- 100 RPS: 6,000 samples/minute
+- 150 RPS: 9,000 samples/minute
+- 200 RPS: 12,000 samples/minute
+
+각 단계에 500 Thread를 둔 것은 JMeter 부하 발생기가 먼저 한계에 도달하지 않도록 여유를 둔 것이다. 서버의 Tomcat Thread나 Hikari 커넥션 수를 500개로 변경하는 설정이 아니다.
+
+실행 전에는 기존 Load Test와 동일하게 `time-deal-seed.sql`을 실행하고, `22222222-2222-4222-8222-222222222222`의 Redis stock key를 초기화한다. 전체 단계에서 약 51,750건의 요청이 발생하므로 초기 재고 100,000개를 사용한다.
+
+Windows PowerShell 실행 예시:
+
+```powershell
+jmeter -n `
+  -t performance-test/timedeal/jmeter/stress/experimental/rps-based/stress-discovery.jmx `
+  -JproductHost=localhost `
+  -JproductPort=8082 `
+  -JtimeDealId=22222222-2222-4222-8222-222222222222 `
+  -l test-results/stress-discovery-baseline.jtl `
+  -j test-results/stress-discovery-baseline.log `
+  -e `
+  -o test-results/stress-discovery-baseline-report
+```
+
+결과는 한 개의 JTL에 저장되므로 Grafana 시간대와 JMeter 시작 시각을 기준으로 단계별로 나누어 분석한다. 각 단계에서 실제 처리량, 평균·P95·P99, 기술 오류율, CPU·JVM·Hikari Pending, DB·Redis 대기를 기록한다. 처리량이 더 이상 증가하지 않거나 P99·오류율·Pending이 지속적으로 악화되면 해당 단계에서 테스트를 종료해도 된다.
+
+### RPS 기반 Stress 독립 재측정 파일
+
+Discovery 실행에서 병목 구간을 확인한 뒤, 특정 RPS만 동일 조건으로 다시 측정할 때 사용한다. 각 파일은 500 Thread, 10초 Ramp-up, 90초 유지 조건으로 해당 RPS 하나만 실행한다.
+
+독립 재측정 파일은 실행마다 DB seed와 Redis 초기화를 먼저 수행한다. 이전
+실행의 재고 차감이나 예약 상태가 남아 있으면 같은 150 RPS라도 재고 부족,
+Redis 키 누락, 만료·복구 작업의 영향을 받아 결과를 공정하게 비교할 수 없기
+때문이다. 이때 애플리케이션과 Redis 컨테이너는 재시작하지 않고, 위 초기화
+명령으로 데이터 상태만 되돌린다.
+
+| 목표 부하 | 독립 실행 파일 |
+|---:|---|
+| 50 RPS | `jmeter/stress/experimental/rps-based/stress-50rps.jmx` |
+| 100 RPS | `jmeter/stress/experimental/rps-based/stress-100rps.jmx` |
+| 150 RPS | `jmeter/stress/experimental/rps-based/stress-150rps.jmx` |
+| 200 RPS | `jmeter/stress/experimental/rps-based/stress-200rps.jmx` |
+| 250 RPS | `jmeter/stress/experimental/rps-based/stress-250rps.jmx` |
+| 300 RPS | `jmeter/stress/experimental/rps-based/stress-300rps.jmx` |
+| 400 RPS | `jmeter/stress/experimental/rps-based/stress-400rps.jmx` |
+
+예를 들어 Discovery에서 150 RPS까지 안정적이고 200 RPS에서 P99가 급증했다면,
+`stress-150rps.jmx`와 `stress-200rps.jmx`를 각각 초기화 후 실행해 독립 결과로
+비교한다. Discovery용 JMX와 독립 측정용 JMX의 결과 파일·HTML 리포트도 서로
+다른 이름을 사용한다.
+
+독립 실행 예시는 다음과 같다. 아래 명령은 `product-service` 디렉터리에서
+PowerShell로 실행한다.
+
+```powershell
+# 250 RPS
+jmeter -n `
+  -t performance-test/timedeal/jmeter/stress/experimental/rps-based/stress-250rps.jmx `
+  -JproductHost=localhost `
+  -JproductPort=8082 `
+  -JtimeDealId=22222222-2222-4222-8222-222222222222 `
+  -l test-results/stress-250rps-run1.jtl `
+  -j test-results/stress-250rps-run1.log `
+  -e `
+  -o test-results/stress-250rps-run1-report
+```
+
+300·400 RPS는 다음처럼 파일명과 결과명만 바꿔 실행한다.
+
+```powershell
+# 300 RPS
+jmeter -n `
+  -t performance-test/timedeal/jmeter/stress/experimental/rps-based/stress-300rps.jmx `
+  -JproductHost=localhost `
+  -JproductPort=8082 `
+  -JtimeDealId=22222222-2222-4222-8222-222222222222 `
+  -l test-results/stress-300rps-run1.jtl `
+  -j test-results/stress-300rps-run1.log `
+  -e `
+  -o test-results/stress-300rps-run1-report
+
+# 400 RPS
+jmeter -n `
+  -t performance-test/timedeal/jmeter/stress/experimental/rps-based/stress-400rps.jmx `
+  -JproductHost=localhost `
+  -JproductPort=8082 `
+  -JtimeDealId=22222222-2222-4222-8222-222222222222 `
+  -l test-results/stress-400rps-run2.jtl `
+  -j test-results/stress-400rps-run2.log `
+  -e `
+  -o test-results/stress-400rps-run2-report
+```
+
+각 독립 실행 전에는 반드시 DB와 Redis를 초기화하고, 기존 JTL 파일과 HTML
+리포트 폴더가 있으면 `run2`, `run3`처럼 다른 결과명을 사용한다.
+
+### 400 RPS 실행 판단 기준
+
+현재 300 RPS 독립 실행에서 오류율 0%, P99 약 56ms로 확인되어 다음 단계로
+400 RPS를 실행한다. `stress-400rps.jmx`는 500 Thread, 10초 Ramp-up, 300초
+유지, 목표 처리량 400 RPS로 구성되어 있다. 90초 실행에서 실제 처리량이
+약 333 RPS로 제한된 원인이 짧은 실행 구간인지 부하 생성기 한계인지 구분하기
+위해 400 RPS만 300초로 확장했다.
+
+400 RPS 실행 결과는 다음 순서로 판단한다.
+
+1. JMeter HTML Report에서 실제 처리량, 평균 응답시간, P95, P99, 최대 응답시간,
+   오류율을 확인한다.
+2. Grafana에서 실행 시간대의 product-service Hikari Active/Pending/Timeout,
+   Tomcat Busy Thread, JVM Heap·GC, Process CPU를 함께 확인한다.
+3. 5xx·timeout이 지속되거나 Hikari Pending·Tomcat Busy Thread가 계속
+   누적되면 400 RPS를 해당 환경의 병목 후보 구간으로 기록한다.
+4. 오류 없이 지표가 회복되면 400 RPS까지는 안정적으로 처리한 것으로 기록하고,
+   필요할 때 450 또는 500 RPS를 다음 독립 단계로 추가한다.
+
+JMeter의 실제 처리량은 Constant Throughput Timer의 목표값과 실행 경계·Ramp-up
+영향 때문에 목표값보다 높거나 낮게 측정될 수 있다. 따라서 결과 기록에는 목표
+처리량과 실제 Report 처리량을 구분해서 작성한다.
+
+### Thread 기반 최대 처리량 테스트 상세 설정 및 실행 방법: 10 → 25 → 50 → 100 Thread
+
+RPS 목표를 정확하게 주입하는 테스트와 별도로, Constant Throughput Timer를
+제거하고 가상 Thread가 응답을 받는 즉시 다음 요청을 보내도록 하여
+실제 처리량을 측정한다. 이 테스트는 “400 RPS를 정확히 발생시킬 수 있는가?”가
+아니라 “동시성을 늘릴 때 서비스가 실제로 어느 정도 처리량을 내는가?”를 확인한다.
+
+10 Thread는 낮은 동시성의 기준값으로 사용하고, 이후 25·50·100 Thread를 별도 실행한다.
+각 단계에서 Thread 증가에 따른 처리량 증가, 정체, P95/P99 악화,
+오류율 변화를 비교할 수 있다. Thread 수가 많다고 항상 처리량이 증가하는 것은
+아니며, DB·Redis·CPU·커넥션 풀이 포화되면 처리량은 정체되거나 오히려 감소할 수
+있다.
+
+설정:
+
+- JMX: `jmeter/stress/stress-max-throughput-{10,25,50,100}threads.jmx`
+- Threads: 10, 25, 50, 100
+- Ramp-up: 10초
+- Duration: 90초
+- Loop: Forever
+- Constant Throughput Timer: 사용하지 않음
+- 측정값: 실제 Throughput, 평균 응답시간, P95/P99, 오류율, CPU·JVM·Hikari 지표
+
+실행 전에는 Load/Stress Test와 동일하게 DB seed와 Redis stock key를 초기화한다.
+초기화는 이전 실행의 구매 이력과 차감 재고가 다음 결과에 섞이지 않게 하기 위한
+것이며, 애플리케이션을 재시작하지 않는 것은 Cold Start 영향을 측정값에 섞지
+않기 위해서다.
+
+```powershell
+jmeter -n `
+  -t performance-test/timedeal/jmeter/stress/stress-max-throughput-10threads.jmx `
+  -JproductHost=localhost `
+  -JproductPort=8082 `
+  -JtimeDealId=22222222-2222-4222-8222-222222222222 `
+  -l test-results/stress-max-throughput-10threads-run1.jtl `
+  -j test-results/stress-max-throughput-10threads-run1.log `
+  -e `
+  -o test-results/stress-max-throughput-10threads-run1-report
+```
+
+10·25·50·100 Thread 결과는 기존 RPS 기반 Stress Test를 대체하지 않는다. RPS 기반 테스트는
+지정 도착률을 검증하고, Thread 기반 테스트는 동시성 증가에 따른 최대 처리량과
+포화 지점을 탐색한다. 두 결과를 구분해서 기록해야 JMeter의 요청 생성 한계와
+product-service의 실제 처리 한계를 혼동하지 않을 수 있다.

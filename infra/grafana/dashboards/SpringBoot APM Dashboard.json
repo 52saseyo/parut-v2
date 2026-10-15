@@ -37,7 +37,7 @@
       }
     ],
     "cursorSync": "Off",
-    "description": "Dashboard for Spring Boot Metrics",
+    "description": "Spring Boot 공통 APM 대시보드. Application에서 전체 또는 특정 서비스를 선택해 JVM·Tomcat·Hikari·Process CPU 지표를 비교한다. System CPU와 Load Average는 각 Spring Boot 런타임이 관측한 시스템 기준이며, Docker 환경에서는 실제 Windows 전체 CPU와 다를 수 있다.",
     "editable": true,
     "elements": {
       "panel-10": {
@@ -63,7 +63,7 @@
                       },
                       "spec": {
                         "alias": "",
-                        "expr": "irate(logback_events_total{instance=~\"$instance\", application=\"$application\", level=\"error\"}[5m])",
+                        "expr": "irate(logback_events_total{instance=~\"$instance\", application=~\"$application\", level=\"error\"}[5m])",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "error",
@@ -187,7 +187,7 @@
                       },
                       "spec": {
                         "alias": "",
-                        "expr": "irate(logback_events_total{instance=~\"$instance\", application=\"$application\", level=\"warn\"}[5m])",
+                        "expr": "irate(logback_events_total{instance=~\"$instance\", application=~\"$application\", level=\"warn\"}[5m])",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "warn",
@@ -311,7 +311,7 @@
                       },
                       "spec": {
                         "alias": "",
-                        "expr": "irate(logback_events_total{instance=~\"$instance\", application=\"$application\", level=\"debug\"}[5m])",
+                        "expr": "irate(logback_events_total{instance=~\"$instance\", application=~\"$application\", level=\"debug\"}[5m])",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "debug",
@@ -434,7 +434,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "irate(http_server_requests_seconds_sum{instance=~\"$instance\", application=\"$application\", exception=\"None\", uri!~\".*actuator.*\"}[5m]) / irate(http_server_requests_seconds_count{instance=~\"$instance\", application=\"$application\", exception=\"None\", uri!~\".*actuator.*\"}[5m])",
+                        "expr": "irate(http_server_requests_seconds_sum{instance=~\"$instance\", application=~\"$application\", exception=\"None\", uri!~\".*actuator.*\"}[5m]) / irate(http_server_requests_seconds_count{instance=~\"$instance\", application=~\"$application\", exception=\"None\", uri!~\".*actuator.*\"}[5m])",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "{{method}} [{{status}}] - {{uri}}"
@@ -555,7 +555,7 @@
                       },
                       "spec": {
                         "alias": "",
-                        "expr": "irate(logback_events_total{instance=~\"$instance\", application=\"$application\", level=\"trace\"}[5m])",
+                        "expr": "irate(logback_events_total{instance=~\"$instance\", application=~\"$application\", level=\"trace\"}[5m])",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "trace",
@@ -678,7 +678,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "tomcat_sessions_active_current_sessions{instance=~\"$instance\", application=\"$application\"}",
+                        "expr": "tomcat_sessions_active_current_sessions{instance=~\"$instance\", application=~\"$application\"}",
                         "format": "time_series",
                         "interval": "",
                         "intervalFactor": 1,
@@ -800,7 +800,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "irate(tomcat_global_sent_bytes_total{instance=~\"$instance\", application=\"$application\"}[5m])",
+                        "expr": "irate(tomcat_global_sent_bytes_total{instance=~\"$instance\", application=~\"$application\"}[5m])",
                         "format": "time_series",
                         "interval": "",
                         "intervalFactor": 1,
@@ -822,7 +822,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "irate(tomcat_global_received_bytes_total{instance=~\"$instance\", application=\"$application\"}[5m])",
+                        "expr": "irate(tomcat_global_received_bytes_total{instance=~\"$instance\", application=~\"$application\"}[5m])",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "Recieved Bytes"
@@ -943,7 +943,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "tomcat_global_error_total{instance=~\"$instance\", application=\"$application\"}",
+                        "expr": "tomcat_global_error_total{instance=~\"$instance\", application=~\"$application\"}",
                         "format": "time_series",
                         "interval": "",
                         "intervalFactor": 1,
@@ -1039,11 +1039,11 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "tomcat_threads_current{instance=~\"$instance\", application=\"$application\"}",
+                        "expr": "tomcat_threads_current{instance=~\"$instance\", application=~\"$application\"}",
                         "format": "time_series",
                         "interval": "",
                         "intervalFactor": 1,
-                        "legendFormat": "Current thread"
+                        "legendFormat": "{{application}} - Current thread"
                       }
                     },
                     "refId": "A",
@@ -1061,10 +1061,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "tomcat_threads_busy{instance=~\"$instance\", application=\"$application\"}",
+                        "expr": "tomcat_threads_busy{instance=~\"$instance\", application=~\"$application\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "Current thread busy"
+                        "legendFormat": "{{application}} - Current thread busy"
                       }
                     },
                     "refId": "B",
@@ -1182,7 +1182,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "tomcat_threads_config_max{instance=~\"$instance\", application=\"$application\"}",
+                        "expr": "tomcat_threads_config_max{instance=~\"$instance\", application=~\"$application\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": ""
@@ -1277,10 +1277,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "hikaricp_connections_active{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
+                        "expr": "hikaricp_connections_active{instance=~\"$instance\", application=~\"$application\", pool=\"$hikaricp\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "Active"
+                        "legendFormat": "{{application}} - Active (사용 중 커넥션)"
                       }
                     },
                     "refId": "B",
@@ -1298,10 +1298,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "hikaricp_connections_idle{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
+                        "expr": "hikaricp_connections_idle{instance=~\"$instance\", application=~\"$application\", pool=\"$hikaricp\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "Idle"
+                        "legendFormat": "{{application}} - Idle (유휴 커넥션)"
                       }
                     },
                     "refId": "A",
@@ -1319,10 +1319,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "hikaricp_connections_pending{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
+                        "expr": "hikaricp_connections_pending{instance=~\"$instance\", application=~\"$application\", pool=\"$hikaricp\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "Pending"
+                        "legendFormat": "{{application}} - Pending (커넥션 대기 요청)"
                       }
                     },
                     "refId": "C",
@@ -1405,7 +1405,7 @@
                     "spanNulls": false,
                     "stacking": {
                       "group": "A",
-                      "mode": "normal"
+              "mode": "none"
                     },
                     "thresholdsStyle": {
                       "mode": "off"
@@ -1461,7 +1461,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "hikaricp_connections_creation_seconds_sum{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"} / hikaricp_connections_creation_seconds_count{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
+                        "expr": "hikaricp_connections_creation_seconds_sum{instance=~\"$instance\", application=~\"$application\", pool=\"$hikaricp\"} / hikaricp_connections_creation_seconds_count{instance=~\"$instance\", application=~\"$application\", pool=\"$hikaricp\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "Creation Time"
@@ -1577,7 +1577,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "irate(http_server_requests_seconds_count{instance=~\"$instance\", application=\"$application\", uri!~\".*actuator.*\"}[5m])",
+                        "expr": "irate(http_server_requests_seconds_count{instance=~\"$instance\", application=~\"$application\", uri!~\".*actuator.*\"}[5m])",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "{{method}} [{{status}}] - {{uri}}"
@@ -1693,7 +1693,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "hikaricp_connections_acquire_seconds_sum{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"} / hikaricp_connections_acquire_seconds_count{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
+                        "expr": "hikaricp_connections_acquire_seconds_sum{instance=~\"$instance\", application=~\"$application\", pool=\"$hikaricp\"} / hikaricp_connections_acquire_seconds_count{instance=~\"$instance\", application=~\"$application\", pool=\"$hikaricp\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "Acquire Time"
@@ -1809,7 +1809,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "hikaricp_connections_usage_seconds_sum{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"} / hikaricp_connections_usage_seconds_count{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
+                        "expr": "hikaricp_connections_usage_seconds_sum{instance=~\"$instance\", application=~\"$application\", pool=\"$hikaricp\"} / hikaricp_connections_usage_seconds_count{instance=~\"$instance\", application=~\"$application\", pool=\"$hikaricp\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "Usage Time"
@@ -1925,10 +1925,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "hikaricp_connections{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
+                        "expr": "hikaricp_connections{instance=~\"$instance\", application=~\"$application\", pool=\"$hikaricp\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": ""
+                        "legendFormat": "{{application}} - Total Connections (전체 커넥션)"
                       }
                     },
                     "refId": "A",
@@ -1944,7 +1944,7 @@
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "stat",
+            "group": "timeseries",
             "version": "13.2.2",
             "spec": {
               "options": {
@@ -2020,10 +2020,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "hikaricp_connections_timeout_total{instance=~\"$instance\", application=\"$application\", pool=\"$hikaricp\"}",
+                "expr": "increase(hikaricp_connections_timeout_total{instance=~\"$instance\", application=~\"$application\", pool=\"$hikaricp\"}[1m])",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": ""
+                "legendFormat": "{{application}} - Connection Timeout / min"
                       }
                     },
                     "refId": "A",
@@ -2039,7 +2039,7 @@
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "stat",
+            "group": "timeseries",
             "version": "13.2.2",
             "spec": {
               "options": {
@@ -2115,7 +2115,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_classes_loaded_classes{instance=~\"$instance\", application=\"$application\"}",
+                        "expr": "jvm_classes_loaded_classes{instance=~\"$instance\", application=~\"$application\"}",
                         "format": "time_series",
                         "interval": "",
                         "intervalFactor": 1,
@@ -2238,7 +2238,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "sum(process_uptime_seconds{application=\"$application\", instance=~\"$instance\"})",
+                        "expr": "sum(process_uptime_seconds{application=~\"$application\", instance=~\"$instance\"})",
                         "format": "time_series",
                         "interval": "",
                         "intervalFactor": 2,
@@ -2342,7 +2342,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "avg(process_start_time_seconds{application=\"$application\", instance=~\"$instance\"})*1000",
+                        "expr": "avg(process_start_time_seconds{application=~\"$application\", instance=~\"$instance\"})*1000",
                         "format": "time_series",
                         "interval": "",
                         "intervalFactor": 2,
@@ -2440,7 +2440,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "sum(jvm_memory_used_bytes{application=\"$application\", instance=~\"$instance\", area=\"heap\"})*100/sum(jvm_memory_max_bytes{application=\"$application\",instance=~\"$instance\", area=\"heap\"})",
+                        "expr": "sum(jvm_memory_used_bytes{application=~\"$application\", instance=~\"$instance\", area=\"heap\"})*100/sum(jvm_memory_max_bytes{application=~\"$application\",instance=~\"$instance\", area=\"heap\"})",
                         "format": "time_series",
                         "interval": "",
                         "intervalFactor": 1,
@@ -2545,7 +2545,7 @@
                       },
                       "spec": {
                         "alias": "",
-                        "expr": "irate(logback_events_total{instance=~\"$instance\", application=\"$application\", level=\"info\"}[5m])",
+                        "expr": "irate(logback_events_total{instance=~\"$instance\", application=~\"$application\", level=\"info\"}[5m])",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "info",
@@ -2668,7 +2668,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "sum(jvm_memory_used_bytes{application=\"$application\", instance=~\"$instance\", area=\"nonheap\"})*100/sum(jvm_memory_max_bytes{application=\"$application\",instance=~\"$instance\", area=\"nonheap\"})",
+                        "expr": "sum(jvm_memory_used_bytes{application=~\"$application\", instance=~\"$instance\", area=\"nonheap\"})*100/sum(jvm_memory_max_bytes{application=~\"$application\",instance=~\"$instance\", area=\"nonheap\"})",
                         "format": "time_series",
                         "intervalFactor": 2,
                         "legendFormat": "",
@@ -2781,7 +2781,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "process_files_open_files{application=\"$application\", instance=~\"$instance\"}",
+                        "expr": "process_files_open_files{application=~\"$application\", instance=~\"$instance\"}",
                         "format": "time_series",
                         "interval": "",
                         "intervalFactor": 1,
@@ -2803,7 +2803,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "process_files_max{application=\"$application\", instance=~\"$instance\"}",
+                        "expr": "process_files_max{application=~\"$application\", instance=~\"$instance\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "Max Files"
@@ -2919,11 +2919,11 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_threads_daemon_threads{instance=~\"$instance\", application=\"$application\"}",
+                        "expr": "jvm_threads_daemon_threads{instance=~\"$instance\", application=~\"$application\"}",
                         "format": "time_series",
                         "interval": "",
                         "intervalFactor": 1,
-                        "legendFormat": "Daemon"
+                        "legendFormat": "{{application}} - Daemon Threads (데몬 스레드)"
                       }
                     },
                     "refId": "A",
@@ -2941,10 +2941,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_threads_live{instance=~\"$instance\", application=\"$application\"}",
+                        "expr": "jvm_threads_live{instance=~\"$instance\", application=~\"$application\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "Live"
+                        "legendFormat": "{{application}} - Live Threads (현재 활성 스레드)"
                       }
                     },
                     "refId": "B",
@@ -2962,10 +2962,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_threads_peak{instance=~\"$instance\", application=\"$application\"}",
+                        "expr": "jvm_threads_peak{instance=~\"$instance\", application=~\"$application\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "Peak"
+                        "legendFormat": "{{application}} - Peak Threads (최대 동시 스레드)"
                       }
                     },
                     "refId": "C",
@@ -3083,10 +3083,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "irate(jvm_gc_pause_seconds_count{instance=~\"$instance\", application=\"$application\"}[5m])",
+                        "expr": "irate(jvm_gc_pause_seconds_count{instance=~\"$instance\", application=~\"$application\"}[5m])",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "{{action}} [{{cause}}]"
+                        "legendFormat": "{{application}} - GC Events / sec - {{action}} [{{cause}}]"
                       }
                     },
                     "refId": "A",
@@ -3245,10 +3245,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "irate(jvm_gc_pause_seconds_sum{instance=~\"$instance\", application=\"$application\"}[5m])",
+                        "expr": "irate(jvm_gc_pause_seconds_sum{instance=~\"$instance\", application=~\"$application\"}[5m])",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "{{action}} [{{cause}}]"
+                        "legendFormat": "{{application}} - GC Pause Time / sec - {{action}} [{{cause}}]"
                       }
                     },
                     "refId": "A",
@@ -3407,10 +3407,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "irate(jvm_gc_memory_allocated_bytes_total{instance=~\"$instance\", application=\"$application\"}[5m])",
+                        "expr": "irate(jvm_gc_memory_allocated_bytes_total{instance=~\"$instance\", application=~\"$application\"}[5m])",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "allocated"
+                        "legendFormat": "{{application}} - Allocated Memory / sec (GC 할당량)"
                       }
                     },
                     "refId": "A",
@@ -3428,10 +3428,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "irate(jvm_gc_memory_promoted_bytes_total{instance=~\"$instance\", application=\"$application\"}[5m])",
+                        "expr": "irate(jvm_gc_memory_promoted_bytes_total{instance=~\"$instance\", application=~\"$application\"}[5m])",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "promoted"
+                        "legendFormat": "{{application}} - Promoted Memory / sec (Old Gen 승격량)"
                       }
                     },
                     "refId": "B",
@@ -3544,7 +3544,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "irate(jvm_classes_unloaded_classes_total{instance=~\"$instance\", application=\"$application\"}[5m])",
+                        "expr": "irate(jvm_classes_unloaded_classes_total{instance=~\"$instance\", application=~\"$application\"}[5m])",
                         "format": "time_series",
                         "interval": "",
                         "intervalFactor": 1,
@@ -3661,7 +3661,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_buffer_memory_used_bytes{instance=~\"$instance\", application=\"$application\", id=\"direct\"}",
+                        "expr": "jvm_buffer_memory_used_bytes{instance=~\"$instance\", application=~\"$application\", id=\"direct\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "Used Bytes"
@@ -3682,7 +3682,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_buffer_total_capacity_bytes{instance=~\"$instance\", application=\"$application\", id=\"direct\"}",
+                        "expr": "jvm_buffer_total_capacity_bytes{instance=~\"$instance\", application=~\"$application\", id=\"direct\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "Capacity Bytes"
@@ -3798,7 +3798,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_buffer_memory_used_bytes{instance=~\"$instance\", application=\"$application\", id=\"mapped\"}",
+                        "expr": "jvm_buffer_memory_used_bytes{instance=~\"$instance\", application=~\"$application\", id=\"mapped\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "Used Bytes"
@@ -3819,7 +3819,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_buffer_total_capacity_bytes{instance=~\"$instance\", application=\"$application\", id=\"mapped\"}",
+                        "expr": "jvm_buffer_total_capacity_bytes{instance=~\"$instance\", application=~\"$application\", id=\"mapped\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "Capacity Bytes"
@@ -3935,10 +3935,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_memory_used_bytes{instance=~\"$instance\", application=\"$application\", id=\"$memory_pool_heap\"}",
+                        "expr": "jvm_memory_used_bytes{instance=~\"$instance\", application=~\"$application\", id=\"$memory_pool_heap\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "Used"
+                        "legendFormat": "{{application}} - Used (현재 사용량)"
                       }
                     },
                     "refId": "C",
@@ -3956,10 +3956,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_memory_committed_bytes{instance=~\"$instance\", application=\"$application\", id=\"$memory_pool_heap\"}",
+                        "expr": "jvm_memory_committed_bytes{instance=~\"$instance\", application=~\"$application\", id=\"$memory_pool_heap\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "Commited"
+                        "legendFormat": "{{application}} - Committed (JVM 확보량)"
                       }
                     },
                     "refId": "A",
@@ -3977,10 +3977,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_memory_max_bytes{instance=~\"$instance\", application=\"$application\", id=\"$memory_pool_heap\"}",
+                        "expr": "jvm_memory_max_bytes{instance=~\"$instance\", application=~\"$application\", id=\"$memory_pool_heap\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "Max"
+                        "legendFormat": "{{application}} - Max (최대 허용량)"
                       }
                     },
                     "refId": "B",
@@ -4098,11 +4098,11 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_memory_used_bytes{instance=~\"$instance\", application=\"$application\", id=\"$memory_pool_nonheap\"}",
+                        "expr": "jvm_memory_used_bytes{instance=~\"$instance\", application=~\"$application\", id=\"$memory_pool_nonheap\"}",
                         "format": "time_series",
                         "interval": "",
                         "intervalFactor": 1,
-                        "legendFormat": "Used"
+                        "legendFormat": "{{application}} - Used (현재 사용량)"
                       }
                     },
                     "refId": "C",
@@ -4120,10 +4120,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_memory_committed_bytes{instance=~\"$instance\", application=\"$application\", id=\"$memory_pool_nonheap\"}",
+                        "expr": "jvm_memory_committed_bytes{instance=~\"$instance\", application=~\"$application\", id=\"$memory_pool_nonheap\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "Commited"
+                        "legendFormat": "{{application}} - Committed (JVM 확보량)"
                       }
                     },
                     "refId": "A",
@@ -4141,10 +4141,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "jvm_memory_max_bytes{instance=~\"$instance\", application=\"$application\", id=\"$memory_pool_nonheap\"}",
+                        "expr": "jvm_memory_max_bytes{instance=~\"$instance\", application=~\"$application\", id=\"$memory_pool_nonheap\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "Max"
+                        "legendFormat": "{{application}} - Max (최대 허용량)"
                       }
                     },
                     "refId": "B",
@@ -4245,7 +4245,7 @@
         "spec": {
           "id": 95,
           "title": "CPU Usage",
-          "description": "",
+          "description": "System CPU는 해당 실행 환경 전체 CPU 사용률이며 서비스별 값이 아니다. Process CPU는 $application으로 선택한 각 Spring Boot JVM 프로세스의 CPU 사용률이다. 두 지표 모두 0~100% 단위로 표시한다.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -4262,10 +4262,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "system_cpu_usage{instance=~\"$instance\", application=\"$application\"}",
+                        "expr": "max by (instance) (system_cpu_usage{instance=~\"$instance\"}) * 100",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "System CPU Usage"
+                        "legendFormat": "System CPU (전체 실행 환경) - {{instance}}"
                       }
                     },
                     "refId": "A",
@@ -4283,10 +4283,10 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "process_cpu_usage{instance=~\"$instance\", application=\"$application\"}",
+                        "expr": "process_cpu_usage{instance=~\"$instance\", application=~\"$application\"} * 100",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "Process CPU Usage"
+                        "legendFormat": "{{application}} - Process CPU (JVM 프로세스)"
                       }
                     },
                     "refId": "B",
@@ -4324,7 +4324,7 @@
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "short",
+                  "unit": "percent",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -4404,7 +4404,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "system_load_average_1m{instance=~\"$instance\", application=\"$application\"}",
+                        "expr": "max by (instance) (system_load_average_1m{instance=~\"$instance\"})",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "Load Average [1m]"
@@ -4425,7 +4425,7 @@
                         "name": "prometheus"
                       },
                       "spec": {
-                        "expr": "system_cpu_count{instance=~\"$instance\", application=\"$application\"}",
+                        "expr": "max by (instance) (system_cpu_count{instance=~\"$instance\"})",
                         "format": "time_series",
                         "intervalFactor": 1,
                         "legendFormat": "CPU Core Size"
@@ -5125,8 +5125,8 @@
         "spec": {
           "name": "application",
           "current": {
-            "text": "product",
-            "value": "product"
+            "text": "All",
+            "value": "$__all"
           },
           "label": "Application",
           "hide": "dontHide",
@@ -5148,8 +5148,9 @@
           "sort": "disabled",
           "definition": "",
           "options": [],
-          "multi": false,
-          "includeAll": false,
+          "multi": true,
+          "includeAll": true,
+          "allValue": ".*",
           "allowCustomValue": true
         }
       },
@@ -5173,7 +5174,7 @@
               "name": "prometheus"
             },
             "spec": {
-              "__legacyStringValue": "label_values(jvm_memory_used_bytes{application=\"$application\"}, instance)"
+              "__legacyStringValue": "label_values(jvm_memory_used_bytes{application=~\"$application\"}, instance)"
             }
           },
           "regex": "",
@@ -5207,13 +5208,13 @@
               "name": "prometheus"
             },
             "spec": {
-              "__legacyStringValue": "label_values(hikaricp_connections{application=\"$application\"}, pool)"
+              "__legacyStringValue": "label_values(hikaricp_connections{application=~\"$application\"}, pool)"
             }
           },
           "regex": "",
           "regexApplyTo": "value",
           "sort": "alphabeticalAsc",
-          "definition": "label_values(hikaricp_connections{application=\"$application\"}, pool)",
+          "definition": "label_values(hikaricp_connections{application=~\"$application\"}, pool)",
           "options": [],
           "multi": false,
           "includeAll": false,
@@ -5240,13 +5241,13 @@
               "name": "prometheus"
             },
             "spec": {
-              "__legacyStringValue": "label_values(jvm_memory_used_bytes{application=\"$application\", area=\"heap\"},id)"
+              "__legacyStringValue": "label_values(jvm_memory_used_bytes{application=~\"$application\", area=\"heap\"},id)"
             }
           },
           "regex": "",
           "regexApplyTo": "value",
           "sort": "alphabeticalAsc",
-          "definition": "label_values(jvm_memory_used_bytes{application=\"$application\", area=\"heap\"},id)",
+          "definition": "label_values(jvm_memory_used_bytes{application=~\"$application\", area=\"heap\"},id)",
           "options": [],
           "multi": false,
           "includeAll": true,
@@ -5273,13 +5274,13 @@
               "name": "prometheus"
             },
             "spec": {
-              "__legacyStringValue": "label_values(jvm_memory_used_bytes{application=\"$application\", area=\"nonheap\"},id)"
+              "__legacyStringValue": "label_values(jvm_memory_used_bytes{application=~\"$application\", area=\"nonheap\"},id)"
             }
           },
           "regex": "",
           "regexApplyTo": "value",
           "sort": "alphabeticalAsc",
-          "definition": "label_values(jvm_memory_used_bytes{application=\"$application\", area=\"nonheap\"},id)",
+          "definition": "label_values(jvm_memory_used_bytes{application=~\"$application\", area=\"nonheap\"},id)",
           "options": [],
           "multi": false,
           "includeAll": true,
