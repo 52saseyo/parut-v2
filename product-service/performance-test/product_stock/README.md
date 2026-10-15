@@ -36,6 +36,14 @@
   docker exec postgres psql -U parut -d parut -c "ALTER DATABASE parut RESET synchronous_commit"
   docker restart product-service
   ```
+- 예약 유효시간(TTL) 15분 (로컬 기본 5분)
+  - reserve만 보내므로 모든 예약이 방치된다. 테스트 도중 만료 스케줄러가 끼어들지 않도록 TTL을 가장 긴 테스트(10분)보다 길게 잡는다.
+  - `.env`의 `PRODUCT_STOCK_RESERVATION_TTL`을 `15m`으로 바꾸고 product-service 컨테이너를 다시 만든다. (`docker restart`는 `.env`를 다시 읽지 않는다. 저장소 루트에서 실행하고, 로그 레벨은 다시 INFO로 바꾼다)
+  ```bash
+  docker compose up -d product-service
+
+  # 테스트 후 .env를 5m으로 되돌리고 같은 명령으로 원복
+  ```
 
 ## 테스트 기준 (3~5번)
 
@@ -52,7 +60,7 @@
 | **이벤트 피크** | 타임딜·할인 오픈 시 평상시의 10배 | **30 TPS** |
 
 - TPS는 **주문 기준**(초당 reserve 요청 수)이다.
-- Grafana 처리량 패널은 reserve·confirm·restore를 모두 합한 HTTP req/s라서 약 1.9배로 표시된다. (예: 30 TPS ≈ 57 req/s)
+- reserve만 보내므로 Grafana 처리량 패널(HTTP req/s)이 곧 reserve TPS다.
 
 ### 합격선
 
@@ -89,7 +97,7 @@ docker exec -i postgres psql -U parut -d parut < performance-test/product_stock/
 
 seed 실행 시 주의:
 
-- 이전 테스트가 끝나고 **5분 뒤**에 실행한다. 남은 예약을 만료 스케줄러가 처리하는 중에 실행하면 외래키 에러로 seed 전체가 롤백된다.
+- 이전 테스트가 끝나면 verify 후 **바로** 실행한다. TTL(15분)이 지나 만료 스케줄러가 남은 예약을 처리하기 시작한 뒤에 실행하면 외래키 에러로 seed 전체가 롤백된다. 이미 만료가 시작됐다면 끝날 때까지 기다린다.
 - Stress처럼 예약이 수십만 건 쌓인 뒤에는 seed가 매우 느려진다. (이벤트 로그 `reservation_id`에 인덱스가 없어 예약 삭제 1건마다 로그 전체를 확인한다.) 이벤트 로그를 먼저 지우고 정리한 뒤 seed를 실행한다.
   ```bash
   docker exec postgres psql -U parut -d parut -c "DELETE FROM product_schema.p_product_stock_event_logs WHERE reservation_id IN (SELECT id FROM product_schema.p_product_stock_reservations WHERE stock_id::text LIKE '77777777-7777-4777-8777-%' OR stock_id = '55555555-5555-4555-8555-555555555556')" -c "VACUUM ANALYZE product_schema.p_product_stock_event_logs"
@@ -175,15 +183,12 @@ jmeter -n -t performance-test/product_stock/jmeter/update-stock-conflict-test.jm
 
 ### 요청 흐름
 
-JMeter 1회 반복 = 주문 1건
+JMeter 1회 반복 = 주문 1건 = `POST /api/v1/internal/stocks/reserve` (재고 1개 선점)
 
-1. `POST /api/v1/internal/stocks/reserve` (재고 1개 선점)
-2. 선점에 성공하면 아래 중 하나
-   - 70%: `POST /api/v1/internal/stocks/confirm` (결제 완료)
-   - 20%: `POST /api/v1/internal/stocks/restore` (주문 취소)
-   - 10%: 아무것도 하지 않음 (결제 이탈) → 5분 뒤 만료 스케줄러가 자동 복구
+**주문이 몰리는 순간의 트래픽**을 보기 위해 reserve만 측정한다. (타임딜 성능 테스트도 구매 선점 API만 측정한다.)
 
-방치 비율 덕분에 **테스트 중 만료 스케줄러와 선점 요청이 같은 재고를 동시에 다루는 상황**도 함께 재현된다.
+- confirm·restore를 함께 보내면 같은 커넥션 풀과 재고 row 락을 나눠 써서, reserve 결과에 다른 API의 영향이 섞인다.
+- 필요하면 `confirmRatio` / `restoreRatio` 옵션으로 결제·취소를 섞은 혼합 부하도 실행할 수 있다. (예: `-JconfirmRatio=70 -JrestoreRatio=20`)
 
 ### 분산 상품과 핫 상품
 
@@ -202,7 +207,7 @@ reserve는 비관적 락이라 같은 상품에 몰리면 실패하기보다 **�
 | `serviceKey` | `local-dev-key` | `X-Service-Key` |
 | `productCsv` | `../data/load-products.csv` | 분산 상품 목록 (jmx 위치 기준) |
 | `hotProductId` | `55555555-5555-4555-8555-555555555555` | 핫 상품 |
-| `confirmRatio` / `restoreRatio` | `70` / `20` | 결제 / 취소 비율(%) |
+| `confirmRatio` / `restoreRatio` | `0` / `0` | reserve 후 결제 / 취소 비율(%). 기본은 reserve 단독 |
 
 ### 리포트와 정합성 검증
 
@@ -221,7 +226,7 @@ docker exec -i postgres psql -U parut -d parut < performance-test/product_stock/
 - `held_mismatch_rows`, `confirmed_mismatch_rows`가 모두 0이면 정상
   - `total - available` = 선점 중(`RESERVED`, `EXPIRATION_FAILED`) 수량 합
   - `초기 재고 - total` = 확정(`CONFIRMED`) 수량 합
-- 5분 이상 지난 뒤 다시 실행하면 방치된 선점이 `expired`로 넘어가야 하고, `expiration_failed`는 0이어야 한다.
+- reserve 단독이면 성공한 reserve 건수가 모두 `reserved`로 남아 있어야 한다. (TTL 15분이 지나기 전)
 
 ## 3. Load Test
 `jmeter/load-test.jmx`
@@ -279,19 +284,21 @@ jmeter -n -t performance-test/product_stock/jmeter/spike-test.jmx -JbaseRps=3 -J
 ## 5. Stress Test
 `jmeter/stress-test.jmx`
 
-- Threads: `maxThreads` 300까지 `rampUp` 600초 동안 선형 증가
-- Duration: `duration` 720초 (마지막 2분은 최대 부하 유지)
+- Threads: `maxThreads` 200까지 `rampUp` 300초 동안 선형 증가
+- Duration: `duration` 420초 (마지막 2분은 최대 부하 유지)
 - 처리량 제한 없음 (응답을 받는 즉시 다음 요청)
 - 대상: `stressTarget` (`distributed` 기본 / `hot`)
+
+`maxThreads`를 Tomcat 기본 요청 스레드 수(200)로 둔다. 그 이상의 Thread는 Tomcat 앞에서 대기만 늘린다.
 
 실행 예시:
 
 ```bash
 # 서버·DB 처리 한계
-jmeter -n -t performance-test/product_stock/jmeter/stress-test.jmx -JmaxThreads=300 -JstressTarget=distributed -l test-results/product_stock/stress-distributed.jtl -j test-results/product_stock/stress-distributed.log
+jmeter -n -t performance-test/product_stock/jmeter/stress-test.jmx -JstressTarget=distributed -l test-results/product_stock/stress-distributed.jtl -j test-results/product_stock/stress-distributed.log
 
 # 단일 재고 락 대기 한계 (seed 재실행 후)
-jmeter -n -t performance-test/product_stock/jmeter/stress-test.jmx -JmaxThreads=300 -JstressTarget=hot -l test-results/product_stock/stress-hot.jtl -j test-results/product_stock/stress-hot.log
+jmeter -n -t performance-test/product_stock/jmeter/stress-test.jmx -JstressTarget=hot -l test-results/product_stock/stress-hot.jtl -j test-results/product_stock/stress-hot.log
 ```
 
 목적:
@@ -312,77 +319,80 @@ jmeter -n -t performance-test/product_stock/jmeter/stress-test.jmx -JmaxThreads=
 
 ## 3~5번 결과
 
-측정일 2026-10-13, 위 측정 조건(로그 INFO, `synchronous_commit = off`)에서 실행했다. 모든 테스트에서 응답은 전부 200이었다.
+측정일 2026-10-15, 위 측정 조건(reserve 단독, 로그 INFO, `synchronous_commit = off`, TTL 15분)에서 실행했다. 모든 테스트에서 응답은 전부 200이었다.
 
 ### 요약
 
-| 테스트 | 전체 처리량 (Grafana) | reserve TPS | 평균 응답시간 (Grafana) | reserve P95 (JMeter) | 에러 | 정합성 mismatch | 판정 |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Load | 약 6 req/s | 3 | 약 10~15ms | 31ms | 0% | 0건 | 합격 |
-| Spike (distributed) | 피크 약 55 req/s | 피크 30 | 약 5~7ms | 20ms | 0% | 0건 | 합격 |
-| Spike (hot) | 피크 약 53 req/s | 피크 30 | 약 5~6ms | 17ms | 0% | 0건 | 합격 |
-| Stress (distributed) | 최대 약 600 req/s | 최대 약 **300** | 약 350~400ms | 1.3~1.4초 (한계 초과, 대기 포함) | 0% | 0건 | 이벤트 피크 대비 약 10배 |
-| Stress (hot) | 최대 약 400 req/s | 최대 약 **200** | 약 520ms | 1.4~1.6초 (한계 초과, 대기 포함) | 0% | 0건 | 이벤트 피크 대비 약 6~7배 |
+| 테스트 | reserve 처리량 (Grafana) | 평균 응답시간 (Grafana) | reserve P95 (JMeter) | 에러 | 정합성 mismatch | 판정 |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Load | 약 3 req/s | 약 10ms | 26ms | 0% | 0건 | 합격 |
+| Spike (distributed) | 피크 약 30 req/s | 약 4~7ms | 19ms (피크 1분 17ms) | 0% | 0건 | 합격 |
+| Spike (hot) | 피크 약 30 req/s | 약 5ms | 15ms (피크 1분 14ms) | 0% | 0건 | 합격 |
+| Stress (distributed) | 최대 약 **660~690** req/s | 약 300~350ms | 0.8~1.1초 (한계 초과, 대기 포함) | 0% | 0건 | 이벤트 피크 대비 약 22배 |
+| Stress (hot) | 최대 약 **390** req/s | 약 500ms | 0.8~1.0초 (한계 초과, 대기 포함) | 0% | 0건 | 이벤트 피크 대비 약 13배 |
 
-- 전체 처리량·평균 응답시간은 Grafana(서버 기준, PR 이미지와 동일), P95는 JMeter(클라이언트 기준, Tomcat 대기 포함) 값이다.
-- 전체 처리량은 reserve + confirm + restore 합계라 reserve TPS의 약 2배다.
-- Stress는 300 Threads 구간 값이다. 실제 처리 시간은 약 15ms로 같고, 한계를 넘은 요청이 커넥션 앞에서 대기해 응답시간이 늘어난다. P95 200ms 이내 구간은 distributed Threads 약 55, hot Threads 약 40까지다.
+- 처리량·평균 응답시간은 Grafana(서버 기준), P95는 JMeter(클라이언트 기준, Tomcat 대기 포함) 값이다.
+- Stress의 응답시간은 200 Threads 유지 구간 값이다. 실제 처리 시간(커넥션 사용 시간)은 15~25ms이고, 한계를 넘은 요청이 커넥션 앞에서 대기해 응답시간이 늘어난다.
+- P95 200ms 이내로 처리되는 구간은 distributed 약 60 Threads(약 670 TPS), hot 약 40 Threads(약 330 TPS)까지다.
 
 ### 3. Load
 
 | 항목 | 결과 |
 | --- | --- |
-| reserve 처리량 | 3.01 TPS (1,803건) |
-| reserve P95 / P99 | 31ms / 63ms |
-| product 커넥션 풀 | active 최대 2~3 / 10, pending 0 |
-| verify | reserved 48 + confirmed 1,266 + cancelled 340 + expired 149 = 1,803 (reserve 성공 건수와 일치) |
+| reserve 처리량 | 3.01 TPS (1,804건) |
+| reserve 평균 / P95 / P99 | 14ms / 26ms / 55ms |
+| product 커넥션 풀 | active 최대 1 / 10, pending 0 |
+| verify | reserved 1,804 (reserve 성공 건수와 일치) |
 
-평상시 피크에서 커넥션 풀 대부분이 비어 있을 만큼 여유가 있다.
+시작 직후 약 1분 동안 평균 응답시간이 약 30ms까지 오른 뒤 약 10ms로 안정됐다. (컨테이너 재생성 직후 워밍업) 평상시 피크에서 커넥션 풀이 거의 비어 있을 만큼 여유가 있다.
 
 ### 4. Spike
 
 | 구간 | distributed (TPS / P95) | hot (TPS / P95) |
 | --- | --- | --- |
-| 기준선 (0~3분) | 3.0 / 14~62ms | 3.0 / 21~31ms |
-| 피크 (3~4분) | 약 30 / 17~21ms | 약 30 / 13~15ms |
-| 회복 (4~7분) | 3.0 / 13~38ms | 3.0 / 12~23ms |
+| 기준선 (0~3분) | 3.0 / 17~30ms | 3.0 / 16~20ms |
+| 피크 (3~4분) | 30.2 / 17ms | 30.1 / 14ms |
+| 회복 (4~7분) | 3.0 / 17~20ms | 3.0 / 15~18ms |
 
 - 처리량이 10배로 뛰어도 응답 시간은 기준선과 차이가 없고, 피크 직후 바로 기준선으로 돌아왔다. (회복 시간 사실상 0)
 - 핫 상품 피크 중에도 기준선(분산 상품) 요청이 느려지지 않았다.
 - product 커넥션 풀 active 최대 1, pending 0
-- verify: distributed 2,932건, hot 2,934건(분산 1,265 + 핫 1,669) 모두 reserve 성공 건수와 일치
+- verify: distributed 2,935건, hot 2,935건(분산 1,266 + 핫 1,669) 모두 reserve 성공 건수와 일치
 
 ### 5. Stress
 
 | 항목 | distributed | hot |
 | --- | --- | --- |
-| 최대 처리량 (reserve) | 약 300 TPS | 약 200 TPS |
-| P95 200ms를 넘는 시점 | Threads 약 60 | Threads 약 46 |
-| 300 Threads 유지 구간 P95 | 1.3~1.4초 | 1.4~1.6초 |
-| 전체 요청 / 에러 | 383,415건 / 0건 | 270,915건 / 0건 |
-| verify | 202,014건 일치 | 142,574건 일치 |
+| 최대 처리량 (reserve) | 약 690 TPS (Threads 약 80) | 약 390 TPS (Threads 약 60부터 정체) |
+| P95 200ms를 넘는 시점 | Threads 약 60 (약 670 TPS) | Threads 약 40 (약 330 TPS) |
+| 200 Threads 유지 구간 | 540~650 TPS / P95 0.8~1.1초 | 380~400 TPS / P95 0.8~1.0초 |
+| 전체 요청 / 에러 | 242,549건 / 0건 | 157,274건 / 0건 |
+| verify | 242,549건 일치 | 157,274건 일치 |
 
-한계 시점 지표 (Prometheus):
+한계 시점 지표 (Prometheus, 200 Threads 구간):
 
 | 지표 | distributed | hot |
 | --- | ---: | ---: |
-| 커넥션 1회 사용 시간 | 약 15ms | 약 25ms |
-| 커넥션 획득 대기 시간 | 250~335ms | 약 500ms |
+| 커넥션 1회 사용 시간 | 약 13~16ms | 약 25~28ms |
+| 커넥션 획득 대기 시간 | 약 320ms | 약 490ms |
 | 커넥션 풀 | active 10/10, pending 약 190 | active 10/10, pending 약 190 |
-| CPU (Docker 4코어 전체) | 92~94% | 약 64% |
+| CPU (Docker 4코어 전체) | 92~94% | 약 62% |
+| CPU (product-service 프로세스) | 41~45% | 23~25% |
 
+- 최대 처리량은 `커넥션 수 ÷ 커넥션 1회 사용 시간`과 일치한다. (distributed 10 ÷ 0.014초 ≈ 710, hot 10 ÷ 0.026초 ≈ 385)
 - **distributed**: 한계 이후 Threads가 늘어도 처리량은 그대로이고 커넥션 대기만 쌓였다. 다만 같은 시점에 CPU도 94%에 가까웠다. (Postgres, 서비스 5개, JMeter가 같은 PC에서 실행) 커넥션 풀 크기(10)와 로컬 PC 자원 중 무엇이 원인인지는 **풀 크기를 늘린 재측정으로 확인**한다.
-- **hot**: CPU에 여유가 있는데도 한계가 약 1/3 낮고 커넥션 사용 시간이 더 길다. 커넥션을 잡은 채 **같은 재고 row 락을 기다리는 것**이 원인이다.
+- **hot**: CPU에 여유가 있는데도 한계가 분산의 약 57%이고 커넥션 사용 시간이 약 2배다. 커넥션을 잡은 채 **같은 재고 row 락을 기다리는 것**이 원인이다.
 - pending이 약 190에서 멈춘 것은 Tomcat 기본 요청 스레드 200개 중 10개가 커넥션을 쓰고 나머지가 대기하기 때문이다.
 - 한계를 넘어도 에러 없이 대기 후 처리됐고, 수십만 건에서도 정합성이 유지됐다.
 
 ### 결론
 
 - 이벤트 피크(30 TPS)까지 합격선을 여유 있게 충족한다.
-- 처리 한계는 분산 약 300 TPS, 핫 상품 약 200 TPS로 이벤트 피크 대비 각각 약 10배, 6~7배 여유가 있다.
+- reserve 처리 한계는 분산 약 690 TPS, 핫 상품 약 390 TPS로 이벤트 피크 대비 각각 약 22배, 13배 여유가 있다.
 - 현재 서비스 규모에서는 Redis 등 추가 구성 없이 DB 비관적 락으로 충분하다.
+- 참고: 이전에 confirm 70% / restore 20%를 섞어 측정했을 때 reserve 한계는 분산 약 300, 핫 약 200 TPS였다. 결제·취소 요청이 같은 커넥션 풀과 재고 row 락을 나눠 쓰기 때문이다.
 
 ### 개선 후보
 
-- **이벤트 로그 `reservation_id` 인덱스 추가**: 만료 스케줄러(`findByReservationIdAndEventType`)와 재고 이력 조회가 이 컬럼으로 조회하는데 인덱스가 없어 로그 전체를 읽는다. 로그가 쌓일수록 느려지며, Stress 직후 남은 예약 약 9천 건의 만료 처리가 오래 걸린 것도 이 영향으로 보인다.
+- **이벤트 로그 `reservation_id` 인덱스 추가**: 만료 스케줄러(`findByReservationIdAndEventType`)와 재고 이력 조회가 이 컬럼으로 조회하는데 인덱스가 없어 로그 전체를 읽는다. 로그가 쌓일수록 느려지며, Stress 직후 대량 예약의 만료 처리와 seed(예약 삭제)가 오래 걸린 것도 이 영향이다.
 - **distributed 병목 확정**: 커넥션 풀을 20으로 늘려 Stress(distributed)를 재측정한다. 처리량이 오르면 커넥션 풀, 그대로면 CPU(로컬 PC 자원)가 병목이다. 현재 규모(30 TPS)에서는 조정이 필요 없다.

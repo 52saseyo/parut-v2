@@ -28,12 +28,12 @@
           </elementProp>
           <elementProp name="confirmRatio" elementType="Argument">
             <stringProp name="Argument.name">confirmRatio</stringProp>
-            <stringProp name="Argument.value">${__P(confirmRatio,70)}</stringProp>
+            <stringProp name="Argument.value">${__P(confirmRatio,0)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="restoreRatio" elementType="Argument">
             <stringProp name="Argument.name">restoreRatio</stringProp>
-            <stringProp name="Argument.value">${__P(restoreRatio,20)}</stringProp>
+            <stringProp name="Argument.value">${__P(restoreRatio,0)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
@@ -64,8 +64,8 @@
       </CSVDataSet>
       <hashTree/>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Stress - 선형 증가 (처리량 제한 없음)">
-        <stringProp name="ThreadGroup.num_threads">${__P(maxThreads,300)}</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(rampUp,600)}</stringProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(maxThreads,200)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampUp,300)}</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
@@ -73,7 +73,7 @@
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
-        <stringProp name="ThreadGroup.duration">${__P(duration,720)}</stringProp>
+        <stringProp name="ThreadGroup.duration">${__P(duration,420)}</stringProp>
         <stringProp name="ThreadGroup.delay">0</stringProp>
         <boolProp name="ThreadGroup.delayedStart">true</boolProp>
       </ThreadGroup>

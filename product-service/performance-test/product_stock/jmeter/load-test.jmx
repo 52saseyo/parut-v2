@@ -28,12 +28,12 @@
           </elementProp>
           <elementProp name="confirmRatio" elementType="Argument">
             <stringProp name="Argument.name">confirmRatio</stringProp>
-            <stringProp name="Argument.value">${__P(confirmRatio,70)}</stringProp>
+            <stringProp name="Argument.value">${__P(confirmRatio,0)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="restoreRatio" elementType="Argument">
             <stringProp name="Argument.name">restoreRatio</stringProp>
-            <stringProp name="Argument.value">${__P(restoreRatio,20)}</stringProp>
+            <stringProp name="Argument.value">${__P(restoreRatio,0)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
