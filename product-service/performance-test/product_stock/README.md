@@ -325,14 +325,14 @@ jmeter -n -t performance-test/product_stock/jmeter/stress-test.jmx -JstressTarge
 
 | 테스트 | reserve 처리량 (Grafana) | 평균 응답시간 (Grafana) | reserve P95 (JMeter) | 에러 | 정합성 mismatch | 판정 |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Load | 약 3 req/s | 약 10ms | 26ms | 0% | 0건 | 합격 |
-| Spike (distributed) | 피크 약 30 req/s | 약 4~7ms | 19ms (피크 1분 17ms) | 0% | 0건 | 합격 |
-| Spike (hot) | 피크 약 30 req/s | 약 5ms | 15ms (피크 1분 14ms) | 0% | 0건 | 합격 |
-| Stress (distributed) | 최대 약 **660~690** req/s | 약 300~350ms | 0.8~1.1초 (한계 초과, 대기 포함) | 0% | 0건 | 이벤트 피크 대비 약 22배 |
-| Stress (hot) | 최대 약 **390** req/s | 약 500ms | 0.8~1.0초 (한계 초과, 대기 포함) | 0% | 0건 | 이벤트 피크 대비 약 13배 |
+| Load | 약 3.3 req/s | 약 8~13ms | 26ms | 0% | 0건 | 합격 |
+| Spike (distributed) | 피크 약 30 req/s | 약 6~8ms | 19ms (피크 1분 17ms) | 0% | 0건 | 합격 |
+| Spike (hot) | 피크 약 30 req/s | 약 5~6ms | 15ms (피크 1분 14ms) | 0% | 0건 | 합격 |
+| Stress (distributed) | 최대 약 **660** req/s | 약 300~360ms | 0.8~1.1초 (한계 초과, 대기 포함) | 0% | 0건 | 이벤트 피크 대비 약 22배 |
+| Stress (hot) | 최대 약 **390** req/s | 약 500~510ms | 0.8~1.0초 (한계 초과, 대기 포함) | 0% | 0건 | 이벤트 피크 대비 약 13배 |
 
 - 처리량·평균 응답시간은 Grafana(서버 기준), P95는 JMeter(클라이언트 기준, Tomcat 대기 포함) 값이다.
-- Stress의 응답시간은 200 Threads 유지 구간 값이다. 실제 처리 시간(커넥션 사용 시간)은 15~25ms이고, 한계를 넘은 요청이 커넥션 앞에서 대기해 응답시간이 늘어난다.
+- Stress의 응답시간은 200 Threads 유지 구간 값이다. 실제 처리 시간(커넥션 사용 시간)은 약 14~26ms이고, 한계를 넘은 요청이 커넥션 앞에서 대기해 응답시간이 늘어난다.
 - P95 200ms 이내로 처리되는 구간은 distributed 약 60 Threads(약 670 TPS), hot 약 40 Threads(약 330 TPS)까지다.
 
 ### 3. Load
