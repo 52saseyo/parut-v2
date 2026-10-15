@@ -1,11 +1,13 @@
 package com.parut.notification.notification.application;
 
 import com.parut.notification.notification.application.dto.TimeDealOpeningSoonCommand;
+import com.parut.notification.notification.application.metrics.NotificationFanoutMetrics;
 import com.parut.notification.notification.domain.Notification;
 import com.parut.notification.notification.domain.NotificationType;
 import com.parut.notification.notification.domain.ReferenceType;
 import com.parut.notification.notification.infrastructure.persistence.NotificationRepository;
 import com.parut.notification.subscription.application.port.in.TimeDealSubscriptionQueryUseCase;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -33,7 +35,16 @@ class TimeDealOpeningSoonNotificationServiceTest {
     void setUp() {
         subscriptions = mock(TimeDealSubscriptionQueryUseCase.class);
         notifications = mock(NotificationRepository.class);
-        service = new TimeDealOpeningSoonNotificationService(subscriptions, notifications);
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
+        NotificationFanoutMetrics fanoutMetrics =
+                new NotificationFanoutMetrics(meterRegistry);
+
+        service = new TimeDealOpeningSoonNotificationService(
+                subscriptions,
+                notifications,
+                fanoutMetrics
+        );
     }
 
     @Test
