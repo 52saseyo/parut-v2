@@ -137,6 +137,36 @@ jmeter -g test-results/concurrency-before.jtl \
 - 사용자 ID: 요청마다 `__UUID()`로 새로 생성
 - 주문 ID: 요청마다 `__UUID()`로 새로 생성
 
+### Load Test에서 Threads를 100개로 설정한 이유
+
+`Threads: 100`은 실제 사용자 100명을 의미하는 고정된 요구사항이 아니라,
+JMeter가 목표 처리량 50 RPS를 안정적으로 발생시키기 위한 가상 작업자 수다.
+Constant Throughput Timer의 `3,000 samples/minute`는 100개 Thread 전체의 합산
+목표이며, Thread 하나마다 3,000건을 보내는 설정이 아니다.
+
+필요한 최소 동시 작업자 수는 대략 다음과 같이 계산할 수 있다.
+
+```text
+필요 Thread 수 ≈ 목표 RPS × 예상 응답시간(초)
+```
+
+예를 들어 50 RPS에서 평균 응답시간이 0.5초라면 이론적으로 약 25개,
+P99가 0.8초라면 약 40개의 동시 작업자가 필요하다. 100개는 응답시간이
+일시적으로 증가하거나 요청이 겹치는 상황에서도 JMeter Thread 부족으로
+실제 처리량이 낮아지는 것을 방지하기 위한 여유값이다.
+
+따라서 100개는 서버의 Tomcat Thread 수나 DB 커넥션 수가 아니며, 반드시
+100이어야 하는 값도 아니다. 실제 목표 50 RPS가 달성되고 JMeter 자체가
+병목이 아니라면 유지할 수 있다. 반대로 Thread 수가 부족해 목표 처리량에
+도달하지 못하면 더 늘려야 한다. Thread 수를 늘려도 Timer의 전체 목표는
+3,000 samples/minute로 유지되므로, 충분한 Thread가 있는 범위에서는
+실제 목표 RPS가 바뀌지 않는다.
+
+이 Load Test는 3,000명의 서로 다른 사용자를 직접 재현하는 테스트가 아니다.
+100개 Thread가 반복 요청하여 50 RPS를 360초 동안 유지하는 처리 용량 검증이다.
+3,000명의 사용자가 1분 안에 각각 한 번 요청하는 사용자 피크 시나리오는
+별도의 `3,000 Threads / Loop 1` 테스트로 분리해야 한다.
+
 요청 대상:
 
 `POST http://localhost:8080/api/v1/internal/time-deals/{timeDealId}/purchases`
