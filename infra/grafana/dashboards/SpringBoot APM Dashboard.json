@@ -1021,7 +1021,7 @@
         "kind": "Panel",
         "spec": {
           "id": 30,
-          "title": "Threads",
+          "title": "Tomcat Threads (Current / Busy)",
           "description": "",
           "links": [],
           "data": {
@@ -1043,7 +1043,7 @@
                         "format": "time_series",
                         "interval": "",
                         "intervalFactor": 1,
-                        "legendFormat": "{{application}} - Current thread"
+                        "legendFormat": "{{application}} - Tomcat Current Threads"
                       }
                     },
                     "refId": "A",
@@ -1064,7 +1064,7 @@
                         "expr": "tomcat_threads_busy{instance=~\"$instance\", application=~\"$application\"}",
                         "format": "time_series",
                         "intervalFactor": 1,
-                        "legendFormat": "{{application}} - Current thread busy"
+                        "legendFormat": "{{application}} - Tomcat Busy Threads"
                       }
                     },
                     "refId": "B",
@@ -2901,7 +2901,7 @@
         "kind": "Panel",
         "spec": {
           "id": 68,
-          "title": "Threads",
+          "title": "JVM Threads (Daemon / Live / Peak)",
           "description": "",
           "links": [],
           "data": {
