@@ -21,6 +21,12 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
 
+server:
+  tomcat:
+    # Tomcat Busy/Current Thread 메트릭을 Actuator로 노출하기 위해 활성화한다.
+    mbeanregistry:
+      enabled: true
+
 management:
   endpoints:
     web:
