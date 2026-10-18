@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Kafka Fan-out Stress Test">
+      <stringProp name="TestPlan.comments">인기 타임딜 이벤트 1건을 발행하고, 사전에 준비한 구독자 수를 단계적으로 증가시켜 단일 이벤트 Fan-out 처리 한계와 병목을 측정한다.</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="bootstrapServers" elementType="Argument">
+            <stringProp name="Argument.name">bootstrapServers</stringProp>
+            <stringProp name="Argument.value">${__P(bootstrapServers,localhost:9092)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="topic" elementType="Argument">
+            <stringProp name="Argument.name">topic</stringProp>
+            <stringProp name="Argument.value">${__P(topic,time-deal.opening-soon)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="eventCsv" elementType="Argument">
+            <stringProp name="Argument.name">eventCsv</stringProp>
+            <stringProp name="Argument.value">${__P(eventCsv,performance-test/data/kafka-load-events.csv)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="eventCount" elementType="Argument">
+            <stringProp name="Argument.name">eventCount</stringProp>
+            <stringProp name="Argument.value">${__P(eventCount,1)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="rampUp" elementType="Argument">
+            <stringProp name="Argument.name">rampUp</stringProp>
+            <stringProp name="Argument.value">${__P(rampUp,1)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+      <SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup" testname="Kafka Producer 준비">
+        <stringProp name="ThreadGroup.on_sample_error">stoptest</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </SetupThreadGroup>
+      <hashTree>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Kafka Producer 생성">
+          <stringProp name="cacheKey">kafka-fanout-stress-producer-setup</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="script">import java.util.Properties
+import org.apache.kafka.clients.producer.KafkaProducer
+
+def producerKey = 'notification.kafka.fanout.stress.producer'
+def producerProperties = new Properties()
+producerProperties.put('bootstrap.servers', vars.get('bootstrapServers'))
+producerProperties.put('key.serializer', 'org.apache.kafka.common.serialization.StringSerializer')
+producerProperties.put('value.serializer', 'org.apache.kafka.common.serialization.StringSerializer')
+producerProperties.put('acks', 'all')
+producerProperties.put('retries', '3')
+producerProperties.put('client.id', 'jmeter-notification-fanout-stress')
+
+props.put(producerKey, new KafkaProducer&lt;String, String&gt;(producerProperties))
+SampleResult.setSuccessful(true)
+SampleResult.setResponseCode('200')
+SampleResult.setResponseMessage('Kafka producer created')</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Kafka Stress 이벤트 발행 Thread Group">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">${eventCount}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${rampUp}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Stress 이벤트 CSV">
+          <stringProp name="filename">${eventCsv}</stringProp>
+          <stringProp name="fileEncoding">UTF-8</stringProp>
+          <stringProp name="variableNames">eventId,timeDealId,timeDealName,timeDealStartAt</stringProp>
+          <boolProp name="ignoreFirstLine">true</boolProp>
+          <stringProp name="delimiter">,</stringProp>
+          <boolProp name="quotedData">false</boolProp>
+          <boolProp name="recycle">false</boolProp>
+          <boolProp name="stopThread">true</boolProp>
+          <stringProp name="shareMode">shareMode.all</stringProp>
+        </CSVDataSet>
+        <hashTree/>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Kafka opening-soon Stress 이벤트 발행">
+          <stringProp name="cacheKey">kafka-fanout-stress-producer-send</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="script">import groovy.json.JsonOutput
+import org.apache.kafka.clients.producer.ProducerRecord
+
+def producer = props.get('notification.kafka.fanout.stress.producer')
+if (producer == null) {
+    throw new IllegalStateException('Kafka producer was not initialized')
+}
+
+def eventId = vars.get('eventId')
+def timeDealId = vars.get('timeDealId')
+def timeDealName = vars.get('timeDealName')
+def timeDealStartAt = vars.get('timeDealStartAt')
+
+if ([eventId, timeDealId, timeDealName, timeDealStartAt].any { it == null || it.isBlank() }) {
+    throw new IllegalStateException('Kafka stress event CSV contains an empty value')
+}
+
+def payload = JsonOutput.toJson([
+    eventId: eventId,
+    timeDealId: timeDealId,
+    timeDealName: timeDealName,
+    timeDealStartAt: timeDealStartAt
+])
+
+try {
+    producer.send(new ProducerRecord&lt;String, String&gt;(vars.get('topic'), eventId, payload)).get()
+    def producerAckEpochMs = System.currentTimeMillis()
+    SampleResult.setSuccessful(true)
+    SampleResult.setResponseCode('200')
+    SampleResult.setResponseMessage('Kafka stress event produced eventId=' + eventId + ', timeDealId=' + timeDealId + ', producerAckEpochMs=' + producerAckEpochMs)
+    SampleResult.setSamplerData(payload)
+} catch (Throwable t) {
+    SampleResult.setSuccessful(false)
+    SampleResult.setResponseCode('500')
+    SampleResult.setResponseMessage(t.getClass().getSimpleName() + ': ' + t.getMessage())
+    throw t
+}</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+      <PostThreadGroup guiclass="PostThreadGroupGui" testclass="PostThreadGroup" testname="Kafka Producer 종료">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </PostThreadGroup>
+      <hashTree>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Kafka Producer flush/close">
+          <stringProp name="cacheKey">kafka-fanout-stress-producer-close</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="script">def producerKey = 'notification.kafka.fanout.stress.producer'
+def producer = props.remove(producerKey)
+if (producer != null) {
+    producer.flush()
+    producer.close()
+}
+SampleResult.setSuccessful(true)
+SampleResult.setResponseCode('200')
+SampleResult.setResponseMessage('Kafka producer closed')</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
