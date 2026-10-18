@@ -2,7 +2,7 @@
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
     <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Kafka Fan-out Spike Test">
-      <stringProp name="TestPlan.comments">여러 Thread가 서로 다른 Kafka 이벤트를 짧은 시간에 동시에 발행한다.</stringProp>
+      <stringProp name="TestPlan.comments">타임딜 알림 이벤트 10건 또는 20건을 1초 이내에 집중 발행한다. 기본 조건은 이벤트당 구독자 10,000명이며, 순간 유입으로 발생한 Kafka lag, Fan-out 지연과 회복 시간을 측정한다.</stringProp>
       <boolProp name="TestPlan.functional_mode">false</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
@@ -20,6 +20,16 @@
           <elementProp name="eventCsv" elementType="Argument">
             <stringProp name="Argument.name">eventCsv</stringProp>
             <stringProp name="Argument.value">${__P(eventCsv,performance-test/data/kafka-load-events.csv)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="eventCount" elementType="Argument">
+            <stringProp name="Argument.name">eventCount</stringProp>
+            <stringProp name="Argument.value">${__P(eventCount,10)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="rampUp" elementType="Argument">
+            <stringProp name="Argument.name">rampUp</stringProp>
+            <stringProp name="Argument.value">${__P(rampUp,1)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
@@ -67,8 +77,8 @@ SampleResult.setResponseMessage('Kafka producer created')</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
           <stringProp name="LoopController.loops">1</stringProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">${__P(eventCount,50)}</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(rampUp,1)}</stringProp>
+        <stringProp name="ThreadGroup.num_threads">${eventCount}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${rampUp}</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
       </ThreadGroup>
       <hashTree>
@@ -115,9 +125,10 @@ def payload = JsonOutput.toJson([
 
 try {
     producer.send(new ProducerRecord&lt;String, String&gt;(vars.get('topic'), eventId, payload)).get()
+    def producerAckEpochMs = System.currentTimeMillis()
     SampleResult.setSuccessful(true)
     SampleResult.setResponseCode('200')
-    SampleResult.setResponseMessage('Kafka spike event produced eventId=' + eventId + ', timeDealId=' + timeDealId)
+    SampleResult.setResponseMessage('Kafka spike event produced eventId=' + eventId + ', timeDealId=' + timeDealId + ', producerAckEpochMs=' + producerAckEpochMs)
     SampleResult.setSamplerData(payload)
 } catch (Throwable t) {
     SampleResult.setSuccessful(false)

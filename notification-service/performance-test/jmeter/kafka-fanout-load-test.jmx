@@ -2,7 +2,7 @@
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
     <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Kafka Fan-out Load Test">
-      <stringProp name="TestPlan.comments">CSV 이벤트를 읽어 Kafka topic time-deal.opening-soon에 일정 속도로 발행한다. 알림 생성 결과는 DB verify SQL과 Kafka lag로 확인한다.</stringProp>
+      <stringProp name="TestPlan.comments">타임딜 알림 이벤트 60건을 5초 간격으로 약 5분간 발행한다. 기본 조건은 이벤트당 구독자 10,000명이며, 지속 유입 중 Kafka lag, Fan-out 지연과 자원 사용량이 계속 증가하지 않는지 확인한다.</stringProp>
       <boolProp name="TestPlan.functional_mode">false</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
@@ -24,7 +24,12 @@
           </elementProp>
           <elementProp name="eventCount" elementType="Argument">
             <stringProp name="Argument.name">eventCount</stringProp>
-            <stringProp name="Argument.value">${__P(eventCount,100)}</stringProp>
+            <stringProp name="Argument.value">${__P(eventCount,60)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="eventsPerMinute" elementType="Argument">
+            <stringProp name="Argument.name">eventsPerMinute</stringProp>
+            <stringProp name="Argument.value">${__P(eventsPerMinute,12)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
@@ -55,11 +60,7 @@
         </CSVDataSet>
         <hashTree/>
         <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Kafka 이벤트 발행 Throughput Timer">
-          <doubleProp>
-            <name>throughput</name>
-            <value>60.0</value>
-            <savedValue>0.0</savedValue>
-          </doubleProp>
+          <stringProp name="throughput">${eventsPerMinute}</stringProp>
           <intProp name="calcMode">1</intProp>
         </ConstantThroughputTimer>
         <hashTree/>
@@ -108,9 +109,10 @@ def payload = JsonOutput.toJson([
 
 try {
     producer.send(new ProducerRecord&lt;String, String&gt;(topic, eventId, payload)).get()
+    def producerAckEpochMs = System.currentTimeMillis()
     SampleResult.setSuccessful(true)
     SampleResult.setResponseCode('200')
-    SampleResult.setResponseMessage('Kafka event produced eventId=' + eventId + ', timeDealId=' + timeDealId)
+    SampleResult.setResponseMessage('Kafka event produced eventId=' + eventId + ', timeDealId=' + timeDealId + ', producerAckEpochMs=' + producerAckEpochMs)
     SampleResult.setSamplerData(payload)
 } catch (Throwable t) {
     SampleResult.setSuccessful(false)
