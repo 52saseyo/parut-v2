@@ -95,6 +95,7 @@ services:
     container_name: prometheus
     volumes:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
     ports:
       - "9090:9090"
     networks:
@@ -156,6 +157,7 @@ volumes:
   grafana_data:
   loki_data:
   alloy_data:
+  prometheus_data:
 
 networks:
   parut-net:
