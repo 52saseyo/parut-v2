@@ -99,6 +99,89 @@
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
+      "id": 19,
+      "panels": [],
+      "title": "DB·Reserve Timer",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 17 },
+      "id": 20,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "expr": "sum(rate(timedeal_reserve_total_seconds_sum{application=~\"$application\",instance=~\"$instance\"}[1m])) / sum(rate(timedeal_reserve_total_seconds_count{application=~\"$application\",instance=~\"$instance\"}[1m])) * 1000", "legendFormat": "reserve 전체 평균", "refId": "A" }],
+      "title": "reserve() 전체 Timer 평균",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 17 },
+      "id": 21,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "expr": "max_over_time(timedeal_reserve_total_seconds_max{application=~\"$application\",instance=~\"$instance\"}[1m]) * 1000", "legendFormat": "reserve 전체 최대", "refId": "A" }],
+      "title": "reserve() 전체 Timer 최대",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 17 },
+      "id": 22,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "sum(rate(timedeal_db_purchase_by_order_query_seconds_sum{application=~\"$application\",instance=~\"$instance\"}[1m])) / sum(rate(timedeal_db_purchase_by_order_query_seconds_count{application=~\"$application\",instance=~\"$instance\"}[1m])) * 1000", "legendFormat": "주문 조회", "refId": "A" },
+        { "expr": "sum(rate(timedeal_db_time_deal_query_seconds_sum{application=~\"$application\",instance=~\"$instance\"}[1m])) / sum(rate(timedeal_db_time_deal_query_seconds_count{application=~\"$application\",instance=~\"$instance\"}[1m])) * 1000", "legendFormat": "타임딜 조회", "refId": "B" },
+        { "expr": "sum(rate(timedeal_db_stock_query_seconds_sum{application=~\"$application\",instance=~\"$instance\"}[1m])) / sum(rate(timedeal_db_stock_query_seconds_count{application=~\"$application\",instance=~\"$instance\"}[1m])) * 1000", "legendFormat": "재고 조회", "refId": "C" },
+        { "expr": "sum(rate(timedeal_db_active_purchase_query_seconds_sum{application=~\"$application\",instance=~\"$instance\"}[1m])) / sum(rate(timedeal_db_active_purchase_query_seconds_count{application=~\"$application\",instance=~\"$instance\"}[1m])) * 1000", "legendFormat": "구매 이력 합산", "refId": "D" }
+      ],
+      "title": "DB 조회 Timer 평균",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 24 },
+      "id": 23,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "expr": "sum(rate(timedeal_db_stock_and_purchase_save_seconds_sum{application=~\"$application\",instance=~\"$instance\"}[1m])) / sum(rate(timedeal_db_stock_and_purchase_save_seconds_count{application=~\"$application\",instance=~\"$instance\"}[1m])) * 1000", "legendFormat": "재고·구매 저장 평균", "refId": "A" }],
+      "title": "DB 재고·구매 저장 Timer 평균",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 24 },
+      "id": 24,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "sum(rate(timedeal_reserve_total_seconds_count{application=~\"$application\",instance=~\"$instance\"}[1m]))", "legendFormat": "reserve 전체 호출", "refId": "A" },
+        { "expr": "sum(rate(timedeal_db_active_purchase_query_seconds_count{application=~\"$application\",instance=~\"$instance\"}[1m]))", "legendFormat": "구매 이력 합산 호출", "refId": "B" },
+        { "expr": "sum(rate(timedeal_db_stock_and_purchase_save_seconds_count{application=~\"$application\",instance=~\"$instance\"}[1m]))", "legendFormat": "재고·구매 저장 호출", "refId": "C" }
+      ],
+      "title": "DB·Reserve Timer 호출량",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 24 },
+      "id": 25,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "max_over_time(timedeal_db_purchase_by_order_query_seconds_max{application=~\"$application\",instance=~\"$instance\"}[1m]) * 1000", "legendFormat": "주문 조회 최대", "refId": "A" },
+        { "expr": "max_over_time(timedeal_db_time_deal_query_seconds_max{application=~\"$application\",instance=~\"$instance\"}[1m]) * 1000", "legendFormat": "타임딜 조회 최대", "refId": "B" },
+        { "expr": "max_over_time(timedeal_db_stock_query_seconds_max{application=~\"$application\",instance=~\"$instance\"}[1m]) * 1000", "legendFormat": "재고 조회 최대", "refId": "C" },
+        { "expr": "max_over_time(timedeal_db_active_purchase_query_seconds_max{application=~\"$application\",instance=~\"$instance\"}[1m]) * 1000", "legendFormat": "구매 이력 합산 최대", "refId": "D" },
+        { "expr": "max_over_time(timedeal_db_stock_and_purchase_save_seconds_max{application=~\"$application\",instance=~\"$instance\"}[1m]) * 1000", "legendFormat": "재고·구매 저장 최대", "refId": "E" }
+      ],
+      "title": "DB Timer 최대",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
       "id": 9,
       "panels": [],
       "title": "Hikari·DB 커넥션",
@@ -107,7 +190,7 @@
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
-      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 17 },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 33 },
       "id": 10,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [{ "expr": "hikaricp_connections_active{application=~\"$application\",instance=~\"$instance\"}", "legendFormat": "Active", "refId": "A" }, { "expr": "hikaricp_connections_idle{application=~\"$application\",instance=~\"$instance\"}", "legendFormat": "Idle", "refId": "B" }],
@@ -117,7 +200,7 @@
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 17 },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 33 },
       "id": 11,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [{ "expr": "hikaricp_connections_pending{application=~\"$application\",instance=~\"$instance\"}", "legendFormat": "Pending", "refId": "A" }, { "expr": "hikaricp_connections_max{application=~\"$application\",instance=~\"$instance\"}", "legendFormat": "Max", "refId": "B" }],
@@ -127,7 +210,7 @@
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 17 },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 33 },
       "id": 12,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [{ "expr": "rate(hikaricp_connections_acquire_seconds_count{application=~\"$application\",instance=~\"$instance\"}[1m])", "legendFormat": "Acquire/s", "refId": "A" }, { "expr": "rate(hikaricp_connections_creation_seconds_count{application=~\"$application\",instance=~\"$instance\"}[1m])", "legendFormat": "Creation/s", "refId": "B" }],
@@ -136,7 +219,7 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
       "id": 13,
       "panels": [],
       "title": "JVM·Process 자원",
@@ -145,7 +228,7 @@
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
-      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 25 },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 41 },
       "id": 14,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [{ "expr": "process_cpu_usage{application=~\"$application\",instance=~\"$instance\"} * 100", "legendFormat": "Process CPU", "refId": "A" }],
@@ -155,7 +238,7 @@
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 25 },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 41 },
       "id": 15,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [{ "expr": "sum(jvm_memory_used_bytes{application=~\"$application\",instance=~\"$instance\",area=\"heap\"}) * 100 / sum(jvm_memory_max_bytes{application=~\"$application\",instance=~\"$instance\",area=\"heap\"})", "legendFormat": "Heap Used %", "refId": "A" }],
@@ -165,7 +248,7 @@
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 25 },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 41 },
       "id": 16,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [{ "expr": "sum(jvm_memory_used_bytes{application=~\"$application\",instance=~\"$instance\",area=\"heap\"})", "legendFormat": "Heap Used", "refId": "A" }, { "expr": "jvm_threads_live_threads{application=~\"$application\",instance=~\"$instance\"}", "legendFormat": "JVM Live Threads", "refId": "B" }],
@@ -174,14 +257,14 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 48 },
       "id": 17,
       "panels": [],
       "title": "테스트 분석 메모",
       "type": "row"
     },
     {
-      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 33 },
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 49 },
       "id": 18,
       "options": { "content": "**사용 방법**\n\n- `$application`, `$instance` 변수로 product-service 인스턴스를 선택한다.\n- JMeter 실행 시간 범위를 동일하게 선택해 HTTP 결과와 Redis·Hikari·JVM 지표를 비교한다.\n- Redis Timer가 안정적인데 Hikari Pending만 증가하면 DB 쿼리·트랜잭션·커넥션 풀을 우선 분석한다.\n- Redis Timer와 Pending이 함께 증가하면 Redis Lua 또는 Redis 네트워크 지연을 확인한다.\n\n**주의**\n\nRedis Timer P95/P99는 히스토그램 또는 percentile 설정이 적용된 경우에만 별도 계산할 수 있다.", "mode": "markdown" },
       "pluginVersion": "13.2.2",
