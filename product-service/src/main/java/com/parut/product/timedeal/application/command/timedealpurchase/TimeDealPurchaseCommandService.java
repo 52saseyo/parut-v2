@@ -8,6 +8,7 @@ import com.parut.product.timedeal.application.dto.timedealpurchase.TimeDealPurch
 import com.parut.product.timedeal.application.dto.timedealpurchase.TimeDealPurchaseConfirmCommand;
 import com.parut.product.timedeal.application.dto.timedealpurchase.TimeDealPurchaseReserveCommand;
 import com.parut.product.timedeal.application.exception.TimeDealReservationExpiredException;
+import com.parut.product.timedeal.application.metrics.timedeal.TimeDealPerformanceMetrics;
 import com.parut.product.timedeal.application.port.in.timedealpurchase.TimeDealPurchaseCommandUseCase;
 import com.parut.product.timedeal.application.port.out.timedeal.TimeDealRepository;
 import com.parut.product.timedeal.application.port.out.timedealpurchase.TimeDealPurchaseRepository;
@@ -43,6 +44,7 @@ public class TimeDealPurchaseCommandService implements TimeDealPurchaseCommandUs
     private final TimeDealStockReservationPort timeDealStockReservationPort;
     private final TimeDealStockRestoreOutbox stockRestoreOutbox;
     private final TimeDealPurchaseExpirationProcessor timeDealPurchaseExpirationProcessor;
+    private final TimeDealPerformanceMetrics performanceMetrics;
 
 
     // NOTE: 애그리거트 조율은 전부 TimeDealPolicy를 경유한다. 여기 남는 것은 조회·저장·트랜잭션 경계와
@@ -50,10 +52,17 @@ public class TimeDealPurchaseCommandService implements TimeDealPurchaseCommandUs
     @Override
     @Transactional
     public void reserve(TimeDealPurchaseReserveCommand timeDealPurchaseReserveCommand) {
+        performanceMetrics.record("timedeal.reserve.total", () -> reserveInternal(timeDealPurchaseReserveCommand));
+    }
+
+    private void reserveInternal(TimeDealPurchaseReserveCommand timeDealPurchaseReserveCommand) {
         // NOTE: 같은 orderId가 이미 있으면, 내용이 원본과 같고 아직 RESERVED일 때만 재시도로 보고
         // 재고를 다시 선점하지 않고 성공시킨다(멱등). 하나라도 다르면 orderId 충돌이라 409.
         // order_id unique 제약이 최종 방어선이고, 이 검사는 제약 위반(500)을 409로 바꿔준다.
-        TimeDealPurchase existingTimeDealPurchase = timeDealPurchaseRepository.findByOrderId(timeDealPurchaseReserveCommand.orderId()).orElse(null);
+        TimeDealPurchase existingTimeDealPurchase = performanceMetrics.record(
+                "timedeal.db.purchase-by-order-query",
+                () -> timeDealPurchaseRepository.findByOrderId(timeDealPurchaseReserveCommand.orderId())
+        ).orElse(null);
         if (existingTimeDealPurchase != null) {
             boolean sameRequest = existingTimeDealPurchase.isReserved() && existingTimeDealPurchase.isSameReservationRequest(timeDealPurchaseReserveCommand.timeDealId(), timeDealPurchaseReserveCommand.userId(), timeDealPurchaseReserveCommand.quantity());
             if (!sameRequest) {
@@ -64,11 +73,23 @@ public class TimeDealPurchaseCommandService implements TimeDealPurchaseCommandUs
         }
 
         // 재고 동시성은 추후 Redis 원자적 연산으로 제어하므로 타임딜 행은 일반 조회한다.
-        TimeDeal timeDeal = timeDealRepository.findById(timeDealPurchaseReserveCommand.timeDealId()).orElseThrow(() -> new BusinessException(ErrorCode.TIME_DEAL_NOT_FOUND));
-        TimeDealStock timeDealStock = timeDealStockRepository.findByTimeDealId(timeDealPurchaseReserveCommand.timeDealId()).orElseThrow(() -> new BusinessException(ErrorCode.TIME_DEAL_STOCK_NOT_FOUND));
+        TimeDeal timeDeal = performanceMetrics.record(
+                "timedeal.db.time-deal-query",
+                () -> timeDealRepository.findById(timeDealPurchaseReserveCommand.timeDealId())
+        ).orElseThrow(() -> new BusinessException(ErrorCode.TIME_DEAL_NOT_FOUND));
+        TimeDealStock timeDealStock = performanceMetrics.record(
+                "timedeal.db.stock-query",
+                () -> timeDealStockRepository.findByTimeDealId(timeDealPurchaseReserveCommand.timeDealId())
+        ).orElseThrow(() -> new BusinessException(ErrorCode.TIME_DEAL_STOCK_NOT_FOUND));
 
         // NOTE: 합산 대상이 RESERVED + CONFIRMED이고 CANCELLED가 빠지는 것은 어댑터가 보장한다.
-        int alreadyPurchasedQuantity = timeDealPurchaseRepository.sumActiveQuantity(timeDealPurchaseReserveCommand.timeDealId(), timeDealPurchaseReserveCommand.userId());
+        int alreadyPurchasedQuantity = performanceMetrics.record(
+                "timedeal.db.active-purchase-query",
+                () -> timeDealPurchaseRepository.sumActiveQuantity(
+                        timeDealPurchaseReserveCommand.timeDealId(),
+                        timeDealPurchaseReserveCommand.userId()
+                )
+        );
 
         // 잠금과 조회를 마친 시각으로 한 번 판정한다. 대기 전 시각을 쓰면 종료 후에도 선점될 수 있다.
         Instant now = Instant.now();
@@ -104,27 +125,29 @@ public class TimeDealPurchaseCommandService implements TimeDealPurchaseCommandUs
         // Redis 선점 성공 이후 DB 재고 상태를 조건부 원자적 UPDATE로 반영한다.
         // 조회한 TimeDealStock 엔티티를 수정·저장하지 않아 동시 요청의 lost update를 방지한다.
         try {
-            boolean stockUpdated = timeDealStockRepository.reserveQuantityAtomically(
-                    timeDealPurchaseReserveCommand.timeDealId(),
-                    timeDealPurchaseReserveCommand.quantity()
-            );
-            if (!stockUpdated) {
-                throw new IllegalStateException("DB stock update failed");
-            }
+            performanceMetrics.record("timedeal.db.stock-and-purchase-save", () -> {
+                boolean stockUpdated = timeDealStockRepository.reserveQuantityAtomically(
+                        timeDealPurchaseReserveCommand.timeDealId(),
+                        timeDealPurchaseReserveCommand.quantity()
+                );
+                if (!stockUpdated) {
+                    throw new IllegalStateException("DB stock update failed");
+                }
 
-            TimeDealPurchase timeDealPurchase = timeDealPolicy.createReservedPurchase(
-                    timeDeal,
-                    timeDealStock,
-                    timeDealPurchaseReserveCommand.orderId(),
-                    timeDealPurchaseReserveCommand.userId(),
-                    timeDealPurchaseReserveCommand.quantity(),
-                    alreadyPurchasedQuantity,
-                    now
-            );
+                TimeDealPurchase timeDealPurchase = timeDealPolicy.createReservedPurchase(
+                        timeDeal,
+                        timeDealStock,
+                        timeDealPurchaseReserveCommand.orderId(),
+                        timeDealPurchaseReserveCommand.userId(),
+                        timeDealPurchaseReserveCommand.quantity(),
+                        alreadyPurchasedQuantity,
+                        now
+                );
 
-            // save만 사용하면 DB 오류가 트랜잭션 커밋 시점에 발생해 이 catch를 지나칠 수 있으므로
-            // 보상 판단을 위해 flush까지 이곳에서 수행한다.
-            timeDealPurchaseRepository.saveAndFlush(timeDealPurchase);
+                // save만 사용하면 DB 오류가 트랜잭션 커밋 시점에 발생해 이 catch를 지나칠 수 있으므로
+                // 보상 판단을 위해 flush까지 이곳에서 수행한다.
+                timeDealPurchaseRepository.saveAndFlush(timeDealPurchase);
+            });
             log.debug("[TimeDealPurchase] Redis 선점 및 DB 구매 저장 성공. timeDealId={}, stockId={}, orderId={}, quantity={}", timeDealPurchaseReserveCommand.timeDealId(), timeDealStock.getId(), timeDealPurchaseReserveCommand.orderId(), timeDealPurchaseReserveCommand.quantity());
         } catch (RuntimeException databaseFailure) {
             log.error("[TimeDealPurchase] Redis 선점 후 DB 구매 저장 실패. 보상을 시도한다. timeDealId={}, stockId={}, orderId={}, quantity={}", timeDealPurchaseReserveCommand.timeDealId(), timeDealStock.getId(), timeDealPurchaseReserveCommand.orderId(), timeDealPurchaseReserveCommand.quantity(), databaseFailure);
