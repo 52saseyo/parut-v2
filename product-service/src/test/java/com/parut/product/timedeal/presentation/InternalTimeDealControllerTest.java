@@ -2,6 +2,7 @@ package com.parut.product.timedeal.presentation;
 
 import com.parut.product.global.interceptor.ServiceKeyInterceptor;
 import com.parut.product.timedeal.application.dto.timedeal.TimeDealDetailResult;
+import com.parut.product.timedeal.application.metrics.timedeal.TimeDealPerformanceMetrics;
 import com.parut.product.timedeal.application.port.in.timedeal.TimeDealQueryUseCase;
 import com.parut.product.timedeal.application.port.in.timedealpurchase.TimeDealPurchaseCommandUseCase;
 import com.parut.product.timedeal.domain.timedeal.TimeDealProductGrade;
@@ -35,6 +36,9 @@ class InternalTimeDealControllerTest {
 
     @MockitoBean
     private TimeDealPurchaseCommandUseCase timeDealPurchaseCommandUseCase;
+
+    @MockitoBean
+    private TimeDealPerformanceMetrics performanceMetrics;
 
     @Autowired
     private MockMvc mvc;
