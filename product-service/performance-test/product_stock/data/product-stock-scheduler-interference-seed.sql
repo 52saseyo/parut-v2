@@ -11,7 +11,7 @@
 --   target               : distributed(기본) = 분산 상품 200개에 골고루 / hot = 핫 상품 1개에 모두
 --   expired_count        : 만료 대상 예약 수 (기본 3,600 = 이벤트 피크 30 TPS × 600초 × 이탈률 20%)
 --   history_logs         : 과거 이력 이벤트 로그 수 (기본 400,000)
---   expire_after_seconds : seed가 끝난 시점부터 만료까지 걸리는 시간 (기본 185초 = 피크 시작 180초 + JMeter 기동 약 5초)
+--   expire_after_seconds : seed가 끝난 시점부터 만료까지 걸리는 시간 (기본 185초 = 피크 시작 180초 + seed 종료 후 JMeter 시작까지 약 2초 + 여유)
 --                          JMeter를 바로 시작하면 Spike 피크(3~4분)에 만료되고, 1분 주기 스케줄러가 피크 중에 처리를 시작한다.
 --
 -- 만료 대상 예약은 created_by = 'performance-test'로 넣어 JMeter가 만든 예약과 구분한다.
