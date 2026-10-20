@@ -37,3 +37,10 @@ logging:
     root: info
   pattern:
     level: "%5p [%X{traceId:-}]"
+
+# 정산 자동 완료: 처리자는 위 app.system-account-id를 사용한다.
+# cron 미설정 시 비활성이다. 아래는 매일 오전 3시(한국 시간) 실행 예시다.
+# perf에서는 이 설정과 관계없이 정기 실행하지 않는다.
+# settlement:
+#   completion:
+#     cron: "0 0 3 * * *"
