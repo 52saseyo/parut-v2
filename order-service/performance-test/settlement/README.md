@@ -1,5 +1,14 @@
 # Settlement Performance Test
 
+## 시나리오 안내
+
+| 목적 | 진입점과 환경 | 파일 |
+| --- | --- | --- |
+| 관리자 완료의 처리시간, 부분 성공과 동시성 | 기존 관리자 API, 개발용 DB | 아래 시나리오와 `data/settlement-seed.sql` |
+| 자동 완료의 청크 처리와 성능 비교 | perf 완료 API, 전용 DB | [실행법과 결과](SETTLEMENT_COMPLETION.md) |
+
+각 SQL은 해당 시나리오의 데이터를 변경한다. 아래 개발용 환경 설정과 perf 전용 환경 설정을 구분해서 사용한다.
+
 ## 환경
 
 - Java 21
