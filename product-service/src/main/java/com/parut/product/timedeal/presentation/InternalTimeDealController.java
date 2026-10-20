@@ -62,12 +62,10 @@ public class InternalTimeDealController {
             @RequestHeader(HeaderConstants.USER_ID) UUID userId,
             @Valid @RequestBody TimeDealPurchaseReserveRequest timeDealPurchaseReserveRequest
     ) {
-        performanceMetrics.record(
-                "timedeal.controller.reserve",
+        performanceMetrics.record("timedeal.controller.reserve",
                 () -> timeDealPurchaseCommandUseCase.reserve(
                         timeDealPurchaseReserveRequest.toCommand(timeDealId, userId)
-                )
-        );
+                ));
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
