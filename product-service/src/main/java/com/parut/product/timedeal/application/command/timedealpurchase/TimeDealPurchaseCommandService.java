@@ -52,6 +52,7 @@ public class TimeDealPurchaseCommandService implements TimeDealPurchaseCommandUs
     @Override
     @Transactional
     public void reserve(TimeDealPurchaseReserveCommand timeDealPurchaseReserveCommand) {
+        performanceMetrics.recordUntilTransactionCompletion("timedeal.transaction.total");
         performanceMetrics.record("timedeal.reserve.total", () -> reserveInternal(timeDealPurchaseReserveCommand));
     }
 
@@ -125,7 +126,7 @@ public class TimeDealPurchaseCommandService implements TimeDealPurchaseCommandUs
         // Redis 선점 성공 이후 DB 재고 상태를 조건부 원자적 UPDATE로 반영한다.
         // 조회한 TimeDealStock 엔티티를 수정·저장하지 않아 동시 요청의 lost update를 방지한다.
         try {
-            performanceMetrics.record("timedeal.db.stock-and-purchase-save", () -> {
+            performanceMetrics.record("timedeal.db.stock-update", () -> {
                 boolean stockUpdated = timeDealStockRepository.reserveQuantityAtomically(
                         timeDealPurchaseReserveCommand.timeDealId(),
                         timeDealPurchaseReserveCommand.quantity()
@@ -133,17 +134,19 @@ public class TimeDealPurchaseCommandService implements TimeDealPurchaseCommandUs
                 if (!stockUpdated) {
                     throw new IllegalStateException("DB stock update failed");
                 }
+            });
 
-                TimeDealPurchase timeDealPurchase = timeDealPolicy.createReservedPurchase(
-                        timeDeal,
-                        timeDealStock,
-                        timeDealPurchaseReserveCommand.orderId(),
-                        timeDealPurchaseReserveCommand.userId(),
-                        timeDealPurchaseReserveCommand.quantity(),
-                        alreadyPurchasedQuantity,
-                        now
-                );
+            TimeDealPurchase timeDealPurchase = timeDealPolicy.createReservedPurchase(
+                    timeDeal,
+                    timeDealStock,
+                    timeDealPurchaseReserveCommand.orderId(),
+                    timeDealPurchaseReserveCommand.userId(),
+                    timeDealPurchaseReserveCommand.quantity(),
+                    alreadyPurchasedQuantity,
+                    now
+            );
 
+            performanceMetrics.record("timedeal.db.purchase-save", () -> {
                 // save만 사용하면 DB 오류가 트랜잭션 커밋 시점에 발생해 이 catch를 지나칠 수 있으므로
                 // 보상 판단을 위해 flush까지 이곳에서 수행한다.
                 timeDealPurchaseRepository.saveAndFlush(timeDealPurchase);

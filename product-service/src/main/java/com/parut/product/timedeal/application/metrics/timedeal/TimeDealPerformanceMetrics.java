@@ -4,6 +4,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.function.Supplier;
 
@@ -28,5 +30,30 @@ public class TimeDealPerformanceMetrics {
         Timer.builder(name)
                 .register(meterRegistry)
                 .record(action);
+    }
+
+    /**
+     * 현재 트랜잭션이 commit 또는 rollback으로 완료되는 시점까지 측정한다.
+     *
+     * <p>호출 시점에 시작한 Timer.Sample을 현재 트랜잭션의 완료 콜백에
+     * 등록하므로, 호출부의 비즈니스 로직이 끝난 뒤 실행되는 commit/rollback
+     * 구간까지 포함할 수 있다.</p>
+     */
+    public void recordUntilTransactionCompletion(String name) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            sample.stop(meterRegistry.timer(name));
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        sample.stop(meterRegistry.timer(name));
+                    }
+                }
+        );
     }
 }

@@ -5,6 +5,7 @@ import com.parut.product.global.constant.HeaderConstants;
 import com.parut.product.global.logging.TraceIdContext;
 import com.parut.product.timedeal.application.dto.timedeal.TimeDealDetailResult;
 import com.parut.product.timedeal.application.dto.timedealpurchase.TimeDealPurchaseConfirmCommand;
+import com.parut.product.timedeal.application.metrics.timedeal.TimeDealPerformanceMetrics;
 import com.parut.product.timedeal.application.port.in.timedeal.TimeDealQueryUseCase;
 import com.parut.product.timedeal.application.port.in.timedealpurchase.TimeDealPurchaseCommandUseCase;
 import com.parut.product.timedeal.presentation.dto.timedeal.response.TimeDealDetailResponse;
@@ -28,6 +29,7 @@ public class InternalTimeDealController {
 
     private final TimeDealPurchaseCommandUseCase timeDealPurchaseCommandUseCase;
     private final TimeDealQueryUseCase timeDealQueryUseCase;
+    private final TimeDealPerformanceMetrics performanceMetrics;
 
 
     // NOTE: 표시 정보가 전부 타임딜 자기 컬럼(스냅샷)이라 상품 조회 없이 한 번에 내려간다.
@@ -60,8 +62,12 @@ public class InternalTimeDealController {
             @RequestHeader(HeaderConstants.USER_ID) UUID userId,
             @Valid @RequestBody TimeDealPurchaseReserveRequest timeDealPurchaseReserveRequest
     ) {
-        timeDealPurchaseCommandUseCase.reserve(
-                timeDealPurchaseReserveRequest.toCommand(timeDealId, userId));
+        performanceMetrics.record(
+                "timedeal.controller.reserve",
+                () -> timeDealPurchaseCommandUseCase.reserve(
+                        timeDealPurchaseReserveRequest.toCommand(timeDealId, userId)
+                )
+        );
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
