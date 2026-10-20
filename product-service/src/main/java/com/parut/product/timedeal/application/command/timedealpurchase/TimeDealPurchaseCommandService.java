@@ -60,8 +60,7 @@ public class TimeDealPurchaseCommandService implements TimeDealPurchaseCommandUs
         // NOTE: 같은 orderId가 이미 있으면, 내용이 원본과 같고 아직 RESERVED일 때만 재시도로 보고
         // 재고를 다시 선점하지 않고 성공시킨다(멱등). 하나라도 다르면 orderId 충돌이라 409.
         // order_id unique 제약이 최종 방어선이고, 이 검사는 제약 위반(500)을 409로 바꿔준다.
-        TimeDealPurchase existingTimeDealPurchase = performanceMetrics.record(
-                "timedeal.db.purchase-by-order-query",
+        TimeDealPurchase existingTimeDealPurchase = performanceMetrics.record("timedeal.db.purchase-by-order-query",
                 () -> timeDealPurchaseRepository.findByOrderId(timeDealPurchaseReserveCommand.orderId())
         ).orElse(null);
         if (existingTimeDealPurchase != null) {
@@ -74,22 +73,16 @@ public class TimeDealPurchaseCommandService implements TimeDealPurchaseCommandUs
         }
 
         // 재고 동시성은 추후 Redis 원자적 연산으로 제어하므로 타임딜 행은 일반 조회한다.
-        TimeDeal timeDeal = performanceMetrics.record(
-                "timedeal.db.time-deal-query",
+        TimeDeal timeDeal = performanceMetrics.record("timedeal.db.time-deal-query",
                 () -> timeDealRepository.findById(timeDealPurchaseReserveCommand.timeDealId())
         ).orElseThrow(() -> new BusinessException(ErrorCode.TIME_DEAL_NOT_FOUND));
-        TimeDealStock timeDealStock = performanceMetrics.record(
-                "timedeal.db.stock-query",
+        TimeDealStock timeDealStock = performanceMetrics.record("timedeal.db.stock-query",
                 () -> timeDealStockRepository.findByTimeDealId(timeDealPurchaseReserveCommand.timeDealId())
         ).orElseThrow(() -> new BusinessException(ErrorCode.TIME_DEAL_STOCK_NOT_FOUND));
 
         // NOTE: 합산 대상이 RESERVED + CONFIRMED이고 CANCELLED가 빠지는 것은 어댑터가 보장한다.
-        int alreadyPurchasedQuantity = performanceMetrics.record(
-                "timedeal.db.active-purchase-query",
-                () -> timeDealPurchaseRepository.sumActiveQuantity(
-                        timeDealPurchaseReserveCommand.timeDealId(),
-                        timeDealPurchaseReserveCommand.userId()
-                )
+        int alreadyPurchasedQuantity = performanceMetrics.record("timedeal.db.active-purchase-query",
+                () -> timeDealPurchaseRepository.sumActiveQuantity(timeDealPurchaseReserveCommand.timeDealId(), timeDealPurchaseReserveCommand.userId())
         );
 
         // 잠금과 조회를 마친 시각으로 한 번 판정한다. 대기 전 시각을 쓰면 종료 후에도 선점될 수 있다.
