@@ -6,6 +6,7 @@ import com.parut.product.timedeal.application.dto.timedealpurchase.TimeDealPurch
 import com.parut.product.timedeal.application.dto.timedealpurchase.TimeDealPurchaseConfirmCommand;
 import com.parut.product.timedeal.application.dto.timedealpurchase.TimeDealPurchaseReserveCommand;
 import com.parut.product.timedeal.application.exception.TimeDealReservationExpiredException;
+import com.parut.product.timedeal.application.metrics.timedeal.TimeDealPerformanceMetrics;
 import com.parut.product.timedeal.application.port.out.timedeal.TimeDealRepository;
 import com.parut.product.timedeal.application.port.out.timedealpurchase.TimeDealPurchaseRepository;
 import com.parut.product.timedeal.application.port.out.timedealstock.TimeDealStockRepository;
@@ -28,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -92,7 +94,8 @@ class TimeDealPurchaseCommandServiceTest {
                 new TimeDealPolicy(),
                 timeDealStockReservationPort,
                 stockRestoreOutbox,
-                timeDealPurchaseExpirationProcessor
+                timeDealPurchaseExpirationProcessor,
+                new TimeDealPerformanceMetrics(new SimpleMeterRegistry())
         );
 
         // NOTE: endAt을 먼 미래로 두어 Instant.now()를 쓰는 서비스에서도 판매 기간 안에 들도록 한다.
