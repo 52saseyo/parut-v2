@@ -6,6 +6,8 @@
 - PostgreSQL
 - Kafka
 - JMeter
+- Prometheus
+- Grafana
 - 테스트 대상 commit/tag
 
 ## 데이터 준비
@@ -28,6 +30,14 @@ mkdir -p test-results
 |---|---|
 | `performance-test/data/subscription-concurrency-seed.sql` | 구독 중복 요청 테스트용 사용자/타임딜 구독 초기화 |
 | `performance-test/data/kafka-fanout-subscription-seed.sql` | Kafka Fan-out 정확성/Stress 테스트용 구독자 데이터 생성 |
+| `performance-test/data/kafka-fanout-workload-seed.sql` | Sequential/Spike 공통 구독 관계 생성 |
+| `performance-test/data/kafka-workload-sequential-events.csv` | Sequential 이벤트와 발행 대기시간 |
+| `performance-test/data/kafka-workload-spike-events.csv` | Spike 집중 발행 이벤트 |
+| `performance-test/data/kafka-fanout-sequential-verify.sql` | Sequential 정합성 검증 |
+| `performance-test/data/kafka-fanout-spike-verify.sql` | Spike 전후 및 집중 구간 정합성 검증 |
+| `src/main/java/com/parut/notification/notification/application/metrics/NotificationFanoutMetrics.java` | Fan-out 전체·단계별 Timer와 Counter 기록 |
+| `src/main/resources/application-docker.yml` | Histogram/SLO 및 대량 테스트용 로그 레벨 설정 |
+| `../infra/grafana/dashboards/Kafka Fan-out Performance Dashboard.json` | Fan-out 요약·단계별·DB Flush 대시보드 |
 | `performance-test/data/notification-read-load-seed.sql` | 알림 조회 Load Test용 알림 데이터 생성 |
 | `performance-test/data/notification-users.csv` | 알림 조회 Load Test에서 순환할 사용자 ID 목록 |
 | `performance-test/data/kafka-events.json` | Kafka 발행 이벤트 예시 |
@@ -102,9 +112,11 @@ jmeter -g test-results/subscription-concurrency.jtl \
 
 생성된 Report에서 응답 코드, Error Rate, P95/P99를 확인한다. 이 테스트는 성능보다 정합성과 5xx 여부가 핵심이다.
 
-## 2. Kafka Fan-out 정확성 테스트
+## 2. Single Event Test
 
-Kafka 이벤트가 발행됐을 때 구독자 수만큼 알림이 정확히 생성되는지 확인한다.
+Kafka 이벤트 한 건을 수신했을 때 구독자 수만큼 알림을 정확하고 빠르게 생성하는지
+확인한다. 1K 이벤트로 기본 동작을 검증하고 10K 이벤트로 단일 인기 타임딜의 기준 성능을
+측정한다.
 
 대상:
 
@@ -112,14 +124,12 @@ Kafka 이벤트가 발행됐을 때 구독자 수만큼 알림이 정확히 생�
 - Consumer group: `notification-time-deal-opening-soon`
 - 결과 테이블: `p_notifications`
 
-테스트 단계:
+Single Event 시나리오:
 
 | 단계 | 이벤트 수 | 이벤트당 구독자 수 | 예상 알림 수 | 목적 |
 |---|---:|---:|---:|---|
 | Medium | 1 | 1,000 | 1,000 | 기본 Fan-out 정확성 확인 |
-| Large | 1 | 10,000 | 10,000 | 단일 이벤트 대량 생성 정확성 확인 |
-| Multiple Event | 20 | 2,000 | 40,000 | 여러 이벤트 연속 유입 시 정확성 확인 |
-| Duplicate | 같은 eventId 재발행 | 10,000 | 신규 0 | 중복 이벤트 멱등성 확인 |
+| Large | 1 | 10,000 | 10,000 | 단일 이벤트 기준 성능과 정확성 확인 |
 
 데이터 준비:
 
@@ -139,8 +149,6 @@ docker exec -i kafka /opt/kafka/bin/kafka-console-producer.sh \
 확인 기준:
 
 - 이벤트별 알림 수가 active 구독자 수와 동일
-- Multiple Event 전체 알림 수가 `이벤트 수 * 이벤트당 구독자 수`와 동일
-- Duplicate 재발행 시 신규 알림 0건
 - `(event_id, user_id)` 중복 row 0건
 - Kafka lag가 테스트 종료 후 수분 내 0으로 회복
 - 서버 예외 0건
@@ -158,15 +166,6 @@ group by event_id
 order by event_id;
 ```
 
-중복 알림 검증:
-
-```sql
-select event_id, user_id, count(*) as duplicate_count
-from p_notifications
-group by event_id, user_id
-having count(*) > 1;
-```
-
 Kafka lag 확인:
 
 ```bash
@@ -176,145 +175,197 @@ docker exec kafka /opt/kafka/bin/kafka-consumer-groups.sh \
   --group notification-time-deal-opening-soon
 ```
 
-목적:
+Single Event 주요 측정값:
 
-정확성 테스트는 처리 한계보다 "정확히 생성되는가"가 목적이다. 따라서 Stress Test보다 작은 수치로 이벤트별 생성 수, 중복 방지, Kafka 재처리 안정성을 먼저 검증한다.
+- Fan-out Latency
+- Notification Throughput
+- Subscriber Lookup, Existing Lookup, Save, DB Flush 시간
+- 예상 알림 수와 실제 Commit 알림 수
+- Kafka Lag, CPU, JVM, GC, HikariCP 상태
 
-## 3. Kafka Fan-out Stress Test
+10K 초기 기준:
 
-구독자가 매우 많거나 이벤트가 많이 몰릴 때 알림서비스가 어느 수준까지 안정적으로 처리할 수 있는지 확인한다.
+| 항목 | 목표 | 허용 상한 |
+|---|---:|---:|
+| 알림 생성 | 10,000/10,000 | 반드시 일치 |
+| Fan-out Latency | 2초 이하 | 5초 |
+| Notification Throughput | 5,000 notifications/s 이상 | 2,000 notifications/s 이상 |
+| 누락·중복 | 0건 | 0건 |
+| Consumer·DB 오류 | 0건 | 0건 |
+| 최종 Kafka Lag | 0 | 0 |
 
-테스트 단계:
+Single Event Test는 단일 이벤트의 기준 성능과 정확성을 측정하며, 이후 테스트 결과를
+비교하기 위한 기준선으로 사용한다. Sequential Event Test에서는 시간차를 둔 연속 유입에도
+기준 성능이 유지되는지, Spike Test에서는 동시 유입으로 증가한 지연이 허용 범위 안에서
+회복되는지, Stress Test에서는 구독자 증가에 따라 처리시간과 자원 사용량이 어느 지점부터
+급격히 증가하거나 실패하는지 판단한다.
 
-| 단계 | 이벤트 수 | 이벤트당 구독자 수 | 예상 알림 수 | 목적 |
-|---|---:|---:|---:|---|
-| Stress 50K | 1 | 50,000 | 50,000 | 단일 이벤트 대량 구독자 처리 기준선 확인 |
-| Stress 100K | 1 | 100,000 | 100,000 | 단일 이벤트 대규모 Fan-out 처리 확인 |
-| Multi Stress 250K | 10 | 25,000 | 250,000 | 여러 이벤트 누적 처리 시 DB insert/Kafka lag 확인 |
-| Peak Stress 500K | 20 | 25,000 | 500,000 | 피크 시간대 다중 이벤트 처리 한계 확인 |
-| Limit Stress 1M | 50 | 20,000 | 1,000,000 | 최대 처리 한계와 장애 지점 탐색 |
+## 3. Sequential Event Test
 
-단계별 판단 기준:
+### 목적과 시나리오
 
-| 단계 | 판단 기준 |
-|---|---|
-| Stress 50K | 반드시 성공해야 하는 기준 |
-| Stress 100K | 목표 성공 기준 |
-| Multi Stress 250K | 목표 성공 기준 또는 병목 확인 기준 |
-| Peak Stress 500K | 한계 검증 기준 |
-| Limit Stress 1M | 탐색 기준. 실패해도 병목 분석이 목적 |
+서로 다른 규모의 타임딜 알림이 일정 시간 동안 불규칙한 간격으로 유입되는 정상 운영형
+워크로드를 검증한다. 인기 타임딜을 중간에 배치해 이전 상태, 10K 처리, 회복 및 후속
+이벤트 처리를 한 실행에서 관찰한다.
 
-측정:
+| 상대 시점 | 이벤트 | 구독자 수 | 이전 이벤트와 간격 |
+|---:|---|---:|---:|
+| T+1분 | Event 1 | 500명 | 기준 구간 1분 |
+| T+3분 | Event 2 | 1,500명 | 2분 |
+| T+7분 | Event 3 | 10,000명 | 4분 |
+| T+10분 | Event 4 | 2,000명 | 3분 |
+| T+14분 | Event 5 | 4,000명 | 4분 |
+| T+16분 | 관찰 종료 | - | 회복 관찰 2분 |
 
-- 알림 생성 수
-- 이벤트 발행부터 알림 생성 완료까지의 처리 시간
-- Kafka consumer group lag 및 회복 시간
-- DB slow query, CPU, insert 지연
-- Hikari active / idle / pending
-- JVM GC, heap 사용량, OOM 여부
-- application log의 exception / timeout
+약 16분은 운영 트래픽에서 도출된 고정값이 아니라 이벤트 전후 상태를 분리해 관찰하기
+위한 최초 엔지니어링 조건이다. 이 테스트는 최대 처리량이나 장시간 Soak 안정성을
+입증하지 않는다.
 
-성공 기준:
+### 목표
 
-- 예상 알림 수와 실제 생성 수가 동일
-- 중복 row 0건
-- 알림 생성 실패 0건
-- Kafka lag가 테스트 종료 후 수분 내 0으로 회복
-- Hikari pending 지속 누적 없음
-- DB timeout 0건
-- OOM / 서버 장애 0건
+- 서로 다른 규모의 이벤트가 시간차를 두고 유입될 때 안정적으로 처리하는지 확인
+- 대규모 이벤트 처리 이후에도 후속 이벤트의 Fan-out 성능과 Kafka Lag 회복 여부 확인
+- 알림 정합성, Fan-out Latency, Notification Throughput, CPU, JVM, GC, Connection Pool 안정성 확인
 
-참고:
 
-`50K -> 100K -> 250K -> 500K -> 1M` 순서로 수치를 올리면 Kafka lag, DB insert 지연, 커넥션 풀 고갈, JVM 메모리 문제를 단계별로 확인할 수 있다. `1M`은 필수 성공 기준이 아니라 최대 처리 한계와 복구 가능성을 확인하기 위한 탐색 기준으로 본다.
 
-## 4. 알림 조회 Load Test
+### Sequential Event 실행
 
-`jmeter/notification-read-load-test.jmx`
 
-생성된 알림을 사용자가 조회할 때 안정적인 응답 시간을 유지하는지 확인한다.
+```bash
+cd /Users/hongtaegyu/IdeaProjects/parut-v2/notification-service
+./performance-test/scripts/run-kafka-fanout-sequential.sh 1
+```
 
-대상 API:
+스크립트는 다음 작업을 순서대로 수행한다.
+
+1. 전용 UUID 대역의 기존 알림·구독을 정리하고 Seed를 생성한다.
+2. Consumer 할당과 시작 Kafka Lag 0을 확인한다.
+3. Kafka Lag과 Docker 자원 수집을 시작한다.
+4. CSV의 대기시간에 따라 5개 이벤트를 발행한다.
+5. 알림 18,000건 및 Lag 0이 연속 확인될 때까지 기다린다.
+6. 이벤트별 Fan-out Latency와 Notification Throughput을 계산한다.
+7. JMeter·Consumer 오류를 수집하고 정합성 SQL을 실행한다.
+
+JMeter 발행이 약 14분 동안 실행된 후 기본 180초 동안 완료를 기다린다. 필요하면 다음처럼
+완료 대기시간만 변경한다.
+
+```bash
+WAIT_TIMEOUT_SECONDS=300 ./performance-test/scripts/run-kafka-fanout-sequential.sh 1
+```
+
+## 4. Spike Test
+
+### 목적과 시나리오
+
+정상 상태에서 2,000명 Baseline 이벤트를 먼저 처리한 뒤 서로 다른 규모의 이벤트 5건을
+1초 이내에 집중 발행한다. 이후 동일한 2,000명 규모의 Recovery 이벤트를 처리해 순간 적체가
+생기더라도 알림 유실 없이 처리하고 Kafka Lag과 자원이 정상 상태로 회복되는지 확인한다.
+
+| 상대 시점 | 구간 | 이벤트 수 | 이벤트별 구독자 수 | 예상 알림 수 |
+|---:|---|---:|---|---:|
+| T+1분 | Baseline | 1건 | 2,000명 | 2,000건 |
+| T+3분 | Spike | 5건 | 1,000/2,000/3,000/4,000/10,000명 | 20,000건 |
+| T+5분 | Recovery | 1건 | 2,000명 | 2,000건 |
+| T+7분 | 관찰 종료 | - | - | 총 24,000건 |
 
 ```text
-GET /api/v1/notifications/unread-count
-GET /api/v1/notifications?size=20
-GET /api/v1/notifications?cursor={createdAt}&cursorId={notificationId}&size=20
+T+0~1분  Grafana 기본 상태 확인
+T+1분    Baseline 이벤트 1건 발행
+T+3분    혼합 규모 이벤트 5건 집중 발행
+T+5분    Recovery 이벤트 1건 발행
+T+5~7분  Kafka Lag과 CPU, JVM, GC, HikariCP 회복 상태 관찰
 ```
 
-데이터 준비:
+### 목표
 
-- 사용자 1,000명
-- 일반 사용자 알림: 사용자당 100건
-- 헤비 유저 알림: 특정 사용자 1명에게 100,000건
-- 읽음 상태: read 70%, unread 30%
-- 생성 시간: cursor 조회가 가능하도록 `created_at` 분산
+- 여러 이벤트가 동시에 유입되는 순간 부하를 안정적으로 처리하는지 확인
+- 집중 부하 이후 Fan-out 성능과 Kafka Lag, 시스템 자원이 정상 상태로 회복되는지 확인
+- 알림 정합성, Fan-out TPS, Notification Throughput, CPU, JVM, GC, Connection Pool 안정성 확인
+
+### Spike 실행
+
+실행 전 Grafana에서 약 1분간 기본 상태를 확인한 다음 명령을 실행한다.
 
 ```bash
-psql "$NOTIFICATION_DATABASE_URL" \
-  -f performance-test/data/notification-read-load-seed.sql
+cd /Users/hongtaegyu/IdeaProjects/parut-v2/notification-service
+./performance-test/scripts/run-kafka-fanout-spike.sh 1
 ```
 
-요청 비율:
-
-| 요청 | 비율 |
-|---|---:|
-| 미읽음 수 조회 | 30% |
-| 알림 목록 첫 페이지 조회 | 50% |
-| 알림 목록 다음 페이지 조회 | 20% |
-
-Load 단계:
-
-| 단계 | RPS | 지속 시간 | 목적 |
-|---|---:|---:|---|
-| Load 30 | 30 | 10분 | 기본 조회 성능 확인 |
-| Load 50 | 50 | 10분 | 일반 부하 성능 확인 |
-| Load 100 | 100 | 10분 | 피크 조회 부하 확인 |
-
-실행 예시:
+Spike 스크립트는 Baseline, Spike, Recovery 이벤트를 각각 T+1분, T+3분, T+5분에 발행한다.
+전체 알림 생성과 Lag 0을 확인한 뒤 기본 120초 동안 자원 회복 상태를 추가로 수집한다.
+추가 관찰시간은 다음과 같이 변경할 수 있다.
 
 ```bash
-jmeter -n -t performance-test/jmeter/notification-read-load-test.jmx \
-  -JnotificationPort=8084 \
-  -JtargetRps=30 \
-  -Jduration=600 \
-  -JuserCsv=../data/notification-users.csv \
-  -l test-results/notification-read-load-30.jtl \
-  -j test-results/notification-read-load-30.log
+RECOVERY_OBSERVATION_SECONDS=60 ./performance-test/scripts/run-kafka-fanout-spike.sh 1
 ```
 
-JTL 기반 HTML Report 생성:
+### 공통 결과 파일
 
-```bash
-jmeter -g test-results/notification-read-load-30.jtl \
-  -Jjmeter.reportgenerator.overall_granularity=5000 \
-  -o test-results/notification-read-load-30-report
+각 실행은 `test-results`에 다음 파일을 만든다. `<type>`은 `sequential` 또는 `spike`다.
+
+```text
+kafka-fanout-<type>-run-1-seed.txt
+kafka-fanout-<type>-run-1.jtl
+kafka-fanout-<type>-run-1.log
+kafka-fanout-<type>-run-1-verification.txt
+kafka-consumer-<type>-run-1.txt
+kafka-lag-<type>-run-1.csv
+container-stats-<type>-run-1.csv
+kafka-publish-count-<type>-run-1.txt
+fanout-measurements-<type>-run-1.csv
+fanout-throughput-<type>-run-1-summary.txt
+errors-<type>-run-1.txt
 ```
 
-확인 기준:
+`fanout-measurements-<type>-run-1.csv`는 이벤트별로 다음 값을 기록한다.
 
-- 에러율 0%
-- 알림 목록 P95 300ms 이하
-- 미읽음 수 P95 200ms 이하
-- P99 1초 이하
-- Hikari pending 지속 누적 없음
-- 반복 slow query 없음
-- 일반 사용자와 헤비 유저 응답 시간이 과도하게 벌어지지 않을 것
+```text
+event_id
+expected_count
+committed_count
+consumer_received_epoch_ms
+transaction_completed_epoch_ms
+fanout_ms
+result
+notifications_per_second
+```
 
-## 최소 성공 기준 요약
+이벤트별 Notification Throughput은 `committed_count / fanout_ms`로 계산한다. Sequential Event Test에서는
+이벤트별 Fan-out Latency와 이 처리율을 주 성능값으로 사용한다.
 
-| 영역 | 최소 성공 기준 |
-|---|---|
-| 구독 정합성 | 동일 사용자/타임딜 active 구독 1건 |
-| 구독 API 안정성 | 5xx 0건 |
-| Fan-out 정확성 | 구독자 수만큼 알림 생성 |
-| 중복 이벤트 | 신규 알림 0건 |
-| Stress 처리 | 예상 알림 수 생성, 서버 장애 없음 |
-| Kafka | lag 수분 내 0 회복 |
-| 조회 성능 | 목록 P95 300ms 이하 |
-| 미읽음 수 | P95 200ms 이하 |
-| DB 커넥션 | Hikari pending 지속 누적 없음 |
-| 안정성 | deadlock, timeout, OOM 0건 |
+`fanout-throughput-<type>-run-1-summary.txt`는 다음 값을 기록한다.
+
+```text
+Fan-out 처리 구간 = 마지막 Commit 시각 - 첫 Consumer 수신 시각
+Fan-out TPS = Commit 성공 이벤트 수 / Fan-out 처리 구간
+Notification Throughput = Commit 알림 수 / Fan-out 처리 구간
+Fan-out Average/Max = 성공한 이벤트별 Fan-out 시간의 평균/최댓값
+```
+
+Spike에서는 Fan-out TPS와 전체 Notification Throughput을 적체 해소 성능값으로 사용한다.
+이때 계산 대상은 집중 발행된 5건과 20,000개 알림이며 Baseline, Recovery 및 대기시간은
+제외한다. Baseline과 Recovery Fan-out Latency는 순간 부하 이후 성능 회복을 비교하는 값이다.
+Sequential Event Test의 전체 TPS는 이벤트 사이의 의도적인 유휴 시간에 영향을 받으므로
+참고값으로만 본다.
+
+JMeter의 응답시간은 Kafka broker가 발행을 승인할 때까지의 시간이며 알림 생성 완료시간이
+아니다. 상세 Fan-out은 Grafana의 `notification.fanout.total`, 단계별 Timer와 DB Commit
+완료 후 증가한 알림 수를 함께 사용해 판단한다. `created_at` 범위는 INSERT 시간 분포를
+보는 보조값이며 E2E 시간이나 DB TPS로 표현하지 않는다.
+
+Grafana 대시보드:
+
+```text
+http://localhost:3000/d/kafka-fanout-performance/kafka-fan-out-performance
+```
+
+처음에는 각 시나리오를 한 번 실행해 데이터와 수집 과정부터 검증한다. 구성이 정상이라면
+Seed부터 다시 시작해 독립 3회 실행하고 정합성은 3회 모두 통과해야 한다. 시간과 회복값은
+중앙값과 최악값을 함께 기록한다.
+
+
+
 
 ## 내부 병목 관찰
 
@@ -332,18 +383,18 @@ jmeter -g test-results/notification-read-load-30.jtl \
 |---|---|
 | 구독자 조회 시간 | Fan-out 내부에서 구독자 조회가 얼마나 걸리는지 분리 측정 필요 |
 | 기존 알림 조회 시간 | 중복 방지를 위한 기존 알림 조회 비용 측정 필요 |
-| 알림 객체 생성 시간 | 애플리케이션 내부 객체 생성 비용 측정 필요 |
 | 알림 저장 시간 | DB insert/saveAll 구간만 별도 측정 필요 |
+| DB Flush 시간 | 실제 INSERT SQL 실행 구간을 분리 측정할 필요 |
 | 전체 Fan-out 처리 시간 | 이벤트 1건 처리의 end-to-end 내부 시간 측정 필요 |
 
-권장 Micrometer Timer:
+Micrometer Timer:
 
 | Timer 이름 | 측정 구간 |
 |---|---|
-| `notification.fanout.total` | 이벤트 1건 전체 처리 시간 |
+| `notification.fanout.total` | Consumer Listener 진입부터 트랜잭션 Commit 또는 실패까지 |
 | `notification.fanout.subscriber.lookup` | active 구독자 조회 시간 |
 | `notification.fanout.existing.lookup` | 기존 알림 조회 시간 |
-| `notification.fanout.build` | 알림 객체 생성 시간 |
 | `notification.fanout.save` | 알림 저장 시간 |
+| `notification.fanout.flush` | 실제 INSERT SQL 실행 시간 |
 
-`eventId`, `timeDealId`, `userId`처럼 값이 계속 늘어나는 항목은 metric tag로 넣지 않는다. 대신 `type=TIME_DEAL_OPENING_SOON`, `result=success|duplicate|error` 정도의 낮은 cardinality tag만 사용한다.
+`eventId`, `timeDealId`, `userId`처럼 값이 계속 늘어나는 항목은 metric tag로 넣지 않는다. 대신 `type=TIME_DEAL_OPENING_SOON`, `result=success|failure` 정도의 낮은 cardinality tag만 사용한다. 빈 구독자와 이미 처리된 이벤트는 정상적으로 종료된 처리로 보고 별도 결과 태그를 만들지 않는다.
