@@ -34,12 +34,22 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+
+    distribution:
+      percentiles-histogram:
+        "[notification.fanout.total]": true
+        "[notification.fanout.save]": true
+        "[notification.fanout.flush]": true
+
+      slo:
+        "[notification.fanout.total]": 500ms,1s,2s
+
   info:
     env:
       enabled: true
 
 logging:
   level:
-    com.parut.notification: debug
-    org.hibernate.SQL: debug
-    org.hibernate.orm.jdbc.bind: trace
+    com.parut.notification: info
+    org.hibernate.SQL: off
+    org.hibernate.orm.jdbc.bind: off
