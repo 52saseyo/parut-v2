@@ -35,6 +35,10 @@ mkdir -p test-results
 | `performance-test/data/kafka-workload-spike-events.csv` | Spike 집중 발행 이벤트 |
 | `performance-test/data/kafka-fanout-sequential-verify.sql` | Sequential 정합성 검증 |
 | `performance-test/data/kafka-fanout-spike-verify.sql` | Spike 전후 및 집중 구간 정합성 검증 |
+| `performance-test/data/kafka-fanout-stress-seed.sql` | 단일 이벤트의 구독자 규모별 Stress 구독 관계 생성 및 이전 실행 데이터 정리 |
+| `performance-test/data/kafka-fanout-stress-verify.sql` | Stress 이벤트의 저장 수, 중복, 누락 및 예상 외 알림 검증 |
+| `performance-test/jmeter/kafka-fanout-stress-test.jmx` | 구독자 규모별 단일 Kafka 이벤트 발행 |
+| `performance-test/scripts/run-kafka-fanout-stress.sh` | Stress 데이터 준비, 실행, 모니터링 및 검증 자동화 |
 | `src/main/java/com/parut/notification/notification/application/metrics/NotificationFanoutMetrics.java` | Fan-out 전체·단계별 Timer와 Counter 기록 |
 | `src/main/resources/application-docker.yml` | Histogram/SLO 및 대량 테스트용 로그 레벨 설정 |
 | `../infra/grafana/dashboards/Kafka Fan-out Performance Dashboard.json` | Fan-out 요약·단계별·DB Flush 대시보드 |
@@ -363,6 +367,167 @@ http://localhost:3000/d/kafka-fanout-performance/kafka-fan-out-performance
 처음에는 각 시나리오를 한 번 실행해 데이터와 수집 과정부터 검증한다. 구성이 정상이라면
 Seed부터 다시 시작해 독립 3회 실행하고 정합성은 3회 모두 통과해야 한다. 시간과 회복값은
 중앙값과 최악값을 함께 기록한다.
+
+## 5. Stress Test
+
+### 목적과 범위
+
+인기 타임딜 한 건의 구독자 수를 단계적으로 증가시켜 단일 이벤트의 최대 안정 처리 규모,
+최초 성능 한계 및 실제 병목 구간을 확인한다. Sequential Event Test와 Spike Test가 여러
+이벤트의 유입 패턴을 검증한다면, Stress Test는 이벤트 수를 한 건으로 고정하고 해당 이벤트가
+생성해야 하는 알림 수만 증가시킨다.
+
+각 규모의 Fan-out Latency, Notification Throughput, Kafka Lag 및 자원 사용량 변화로 한계 지점을 찾고, 결과는 운영 SLA가
+아닌 동일한 로컬 환경에서의 성능 비교 기준으로 사용한다.
+
+### 측정 항목
+
+| 측정값 | 의미 |
+|---|---|
+| Fan-out Latency | Consumer 수신부터 알림 저장 트랜잭션 완료까지 걸린 시간 |
+| Notification Throughput | Commit된 알림 수를 Fan-out Latency로 나눈 초당 알림 처리량 |
+| 단계별 Timer | Subscriber Lookup, Existing Lookup, Save, DB Flush 처리시간 |
+| Kafka Lag | 처리 중 최대 Lag과 테스트 완료 후 최종 Lag |
+| 정합성 | 예상 저장 수, 실제 저장 수, 중복, 누락 및 예상 외 알림 |
+| 시스템 자원 | notification-service와 PostgreSQL의 CPU, 메모리 및 Block I/O |
+| JVM·DB 상태 | Heap, Old Gen, GC Pause, HikariCP Pending 및 Timeout |
+
+단일 이벤트만 발행하므로 events/s 단위의 Fan-out TPS는 주요 지표로 사용하지 않는다. JMeter
+결과는 이벤트 발행 성공 여부만 확인하며, 처리시간과 처리량은 `FANOUT_MEASUREMENT` 로그의
+Consumer 수신 시각과 트랜잭션 완료 시각을 기준으로 계산한다.
+
+### 단계별 시나리오
+
+| 구간 | 구독자 수 | 반복 | 목적 |
+|---|---:|---:|---|
+| Warm-up | 1K | 1회 | 최초 실행에 따른 초기화 영향 제거 및 실행 환경 확인 |
+| Baseline | 10K | 3회 | Single Event 기준 성능 재현 |
+| 초기 탐색 | 30K·50K·70K·100K·150K·200K | 각 1회 | 규모 증가에 따른 처리시간과 자원 변화 확인 |
+| 확장 탐색 | 300K·500K·750K·1M | 각 1회 | 초기 탐색이 안정적일 때 처리 한계 탐색 |
+| 경계 재측정 | 최대 안정 후보·최초 불안정 규모 | 각 3회 | 일시적 변동과 반복 가능한 한계 구분 |
+
+다음 규모는 이전 실행의 최종 Kafka Lag이 0이고 서비스와 DB 자원이 안정된 후 진행한다.
+실패가 발생하면 더 큰 규모로 진행하지 않고 마지막 정상 규모와 최초 실패 규모 사이를
+세분화한다. 1M까지 안정적으로 처리되면 최대 처리 규모를 1M으로 단정하지 않고, 로컬 테스트
+범위인 1M까지 한계를 발견하지 못한 것으로 기록한다.
+
+초기 탐색은 각 실행 후 최소 3분, 확장 탐색은 최소 5분의 간격을 둔다. 대기시간이 지나도
+Kafka Lag, CPU, DB I/O, GC 또는 HikariCP가 안정되지 않았다면 다음 규모를 실행하지 않는다.
+기존 10K 기준이 안정적으로 재현되면 초기 탐색은 30K부터 시작한다. 처리시간 급증이나
+오류가 발생한 경우 사이의 변화 구간을 확인한다.
+
+
+
+```bash
+cd /Users/hongtaegyu/IdeaProjects/parut-v2
+docker compose ps
+
+cd notification-service
+jmeter -v
+psql --version
+```
+
+스크립트 실행 형식:
+
+```bash
+./performance-test/scripts/run-kafka-fanout-stress.sh <subscriber-count> <run-number>
+```
+
+스크립트는 Stress 전용 UUID 대역의 이전 알림과 현재 규모가 아닌 구독 데이터를 정리하고,
+Seed 생성과 `ANALYZE`를 완료한 후 측정을 시작한다. 같은 규모를 반복할 때는 활성 구독 관계를
+재사용한다. 실행 중에는 Kafka Lag과 컨테이너 자원을 수집하고, 완료 후 저장 정합성과 오류를
+검증한다.
+
+### 실행 순서
+
+Warm-up과 Baseline:
+
+```bash
+./performance-test/scripts/run-kafka-fanout-stress.sh 1000 1
+
+./performance-test/scripts/run-kafka-fanout-stress.sh 10000 1
+./performance-test/scripts/run-kafka-fanout-stress.sh 10000 2
+./performance-test/scripts/run-kafka-fanout-stress.sh 10000 3
+```
+
+초기 탐색:
+
+```bash
+./performance-test/scripts/run-kafka-fanout-stress.sh 30000 1
+./performance-test/scripts/run-kafka-fanout-stress.sh 50000 1
+./performance-test/scripts/run-kafka-fanout-stress.sh 70000 1
+./performance-test/scripts/run-kafka-fanout-stress.sh 100000 1
+./performance-test/scripts/run-kafka-fanout-stress.sh 150000 1
+./performance-test/scripts/run-kafka-fanout-stress.sh 200000 1
+```
+
+초기 탐색이 안정적일 때 확장:
+
+```bash
+./performance-test/scripts/run-kafka-fanout-stress.sh 300000 1
+
+WAIT_TIMEOUT_SECONDS=900 \
+  ./performance-test/scripts/run-kafka-fanout-stress.sh 500000 1
+
+WAIT_TIMEOUT_SECONDS=1200 \
+  ./performance-test/scripts/run-kafka-fanout-stress.sh 750000 1
+
+WAIT_TIMEOUT_SECONDS=1200 \
+  ./performance-test/scripts/run-kafka-fanout-stress.sh 1000000 1
+```
+
+`WAIT_TIMEOUT_SECONDS`는 성능 목표가 아니라 테스트가 무한히 대기하지 않도록 하는 안전장치다.
+같은 규모와 실행 번호의 결과 파일이 이미 있으면 덮어쓰지 않고 종료하므로 재실행할 때는 새로운
+실행 번호를 사용한다.
+
+### 결과 파일
+
+100K Run 1을 실행하면 `test-results`에 다음 파일을 만든다.
+
+```text
+kafka-fanout-stress-100000-run-1-seed.txt
+kafka-fanout-stress-100000-run-1.jtl
+kafka-fanout-stress-100000-run-1.log
+kafka-fanout-stress-100000-run-1-verification.txt
+kafka-consumer-stress-100000-run-1.txt
+kafka-lag-stress-100000-run-1.csv
+container-stats-stress-100000-run-1.csv
+kafka-publish-count-stress-100000-run-1.txt
+fanout-measurements-stress-100000-run-1.csv
+fanout-throughput-stress-100000-run-1-summary.txt
+errors-stress-100000-run-1.txt
+```
+
+주요 결과 확인:
+
+```bash
+cat test-results/fanout-throughput-stress-100000-run-1-summary.txt
+cat test-results/kafka-fanout-stress-100000-run-1-verification.txt
+cat test-results/errors-stress-100000-run-1.txt
+```
+
+### 안정 처리 및 중단 기준
+
+아래 조건을 모두 만족한 규모를 안정 처리 후보로 본다.
+
+- 예상 알림 수와 Commit된 알림 수 일치
+- 누락, 중복, 예상 외 알림 및 처리 실패 0건
+- 최종 Kafka Lag 0 회복
+- OOM, Rollback, Timeout 및 서비스 재시작 없음
+- 동일 규모 반복 실행에서 처리시간과 자원 사용량이 재현 가능한 범위 유지
+
+다음 중 하나가 발생하면 더 큰 규모로 진행하지 않고 현재 결과를 보존한 뒤 원인을 분석한다.
+
+- 대기시간 안에 알림 저장과 Kafka Lag 회복이 완료되지 않음
+- 알림 누락, 중복 또는 예상 외 저장 발생
+- Kafka Lag이 지속적으로 증가하거나 0으로 회복되지 않음
+- OOM, DB Connection Timeout, Rollback 또는 Consumer 반복 예외 발생
+- notification-service 또는 PostgreSQL 컨테이너 재시작
+- Fan-out Latency, DB Flush 또는 자원 사용량이 직전 규모보다 급격히 증가
+
+경계 구간에서는 최대 안정 규모 후보와 최초 불안정 규모를 각각 3회 실행한다. 각 실행의
+Fan-out Latency, Notification Throughput, 최대·최종 Kafka Lag, 단계별 Timer, 정합성과 오류를
+기록하고 중앙값과 최악값을 함께 비교한다.
 
 
 

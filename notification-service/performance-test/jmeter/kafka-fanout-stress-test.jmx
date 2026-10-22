@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Kafka Fan-out Stress Test">
+      <stringProp name="TestPlan.comments">구독자 규모를 실행 인자로 받아 단일 타임딜 오픈 예정 이벤트 한 건을 발행한다.</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="bootstrapServers" elementType="Argument">
+            <stringProp name="Argument.name">bootstrapServers</stringProp>
+            <stringProp name="Argument.value">${__P(bootstrapServers,localhost:9092)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="topic" elementType="Argument">
+            <stringProp name="Argument.name">topic</stringProp>
+            <stringProp name="Argument.value">${__P(topic,time-deal.opening-soon)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="eventId" elementType="Argument">
+            <stringProp name="Argument.name">eventId</stringProp>
+            <stringProp name="Argument.value">${__P(eventId,)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="timeDealId" elementType="Argument">
+            <stringProp name="Argument.name">timeDealId</stringProp>
+            <stringProp name="Argument.value">${__P(timeDealId,)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="timeDealName" elementType="Argument">
+            <stringProp name="Argument.name">timeDealName</stringProp>
+            <stringProp name="Argument.value">${__P(timeDealName,Kafka Fan-out Stress Deal)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="timeDealStartAt" elementType="Argument">
+            <stringProp name="Argument.name">timeDealStartAt</stringProp>
+            <stringProp name="Argument.value">${__P(timeDealStartAt,2099-01-01T00:00:00Z)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Kafka Stress 이벤트 발행 Thread Group">
+        <stringProp name="ThreadGroup.on_sample_error">stoptest</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Kafka opening-soon Stress 이벤트 발행">
+          <stringProp name="cacheKey">kafka-fanout-stress-producer</stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="script">import java.util.Properties
+import groovy.json.JsonOutput
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerRecord
+
+def eventId = vars.get('eventId')
+def timeDealId = vars.get('timeDealId')
+def timeDealName = vars.get('timeDealName')
+def timeDealStartAt = vars.get('timeDealStartAt')
+
+if ([eventId, timeDealId, timeDealName, timeDealStartAt].any { it == null || it.isBlank() }) {
+    throw new IllegalStateException('Kafka stress event contains an empty value')
+}
+
+def producerProperties = new Properties()
+producerProperties.put('bootstrap.servers', vars.get('bootstrapServers'))
+producerProperties.put('key.serializer', 'org.apache.kafka.common.serialization.StringSerializer')
+producerProperties.put('value.serializer', 'org.apache.kafka.common.serialization.StringSerializer')
+producerProperties.put('acks', 'all')
+producerProperties.put('retries', '3')
+producerProperties.put('client.id', 'jmeter-notification-fanout-stress')
+
+def payload = JsonOutput.toJson([
+    eventId: eventId,
+    timeDealId: timeDealId,
+    timeDealName: timeDealName,
+    timeDealStartAt: timeDealStartAt
+])
+
+def producer = new KafkaProducer&lt;String, String&gt;(producerProperties)
+try {
+    producer.send(new ProducerRecord&lt;String, String&gt;(vars.get('topic'), eventId, payload)).get()
+    SampleResult.setSuccessful(true)
+    SampleResult.setResponseCode('200')
+	    SampleResult.setResponseMessage('Kafka stress event produced eventId=' + eventId + ', timeDealId=' + timeDealId)
+    SampleResult.setSamplerData(payload)
+} catch (Throwable t) {
+    SampleResult.setSuccessful(false)
+    SampleResult.setResponseCode('500')
+    SampleResult.setResponseMessage(t.getClass().getSimpleName() + ': ' + t.getMessage())
+    throw t
+} finally {
+    producer.flush()
+    producer.close()
+}</stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
