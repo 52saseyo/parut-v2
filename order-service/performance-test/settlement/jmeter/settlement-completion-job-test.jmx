@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="정산 완료 작업 고정 건수 측정" />
+    <hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="단일 작업 실행">
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">0</stringProp>
+        <stringProp name="ThreadGroup.on_sample_error">stoptest</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="settlement-completion-job">
+          <stringProp name="HTTPSampler.domain">${__P(orderHost,localhost)}</stringProp>
+          <stringProp name="HTTPSampler.port">${__P(orderPort,18083)}</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.path">/api/v1/perf/settlements/complete</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <stringProp name="HTTPSampler.connect_timeout">10000</stringProp>
+          <stringProp name="HTTPSampler.response_timeout">180000</stringProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{"cutoff":"${__P(cutoff)}","sellerId":"${__P(sellerId)}"}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="관리자 인증 헤더">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="Content-Type" elementType="Header">
+                <stringProp name="Header.name">Content-Type</stringProp>
+                <stringProp name="Header.value">application/json</stringProp>
+              </elementProp>
+              <elementProp name="X-User-Id" elementType="Header">
+                <stringProp name="Header.name">X-User-Id</stringProp>
+                <stringProp name="Header.value">f9000000-0000-4000-8000-000000000099</stringProp>
+              </elementProp>
+              <elementProp name="X-User-Role" elementType="Header">
+                <stringProp name="Header.name">X-User-Role</stringProp>
+                <stringProp name="Header.value">ADMIN</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree />
+          <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="완료 건수와 결과 검증">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="script">import groovy.json.JsonSlurper
+log.info('COMPLETION_RESULT ' + prev.getResponseDataAsString())
+if (prev.getResponseCode() != '200') { AssertionResult.setFailure(true); AssertionResult.setFailureMessage('HTTP ' + prev.getResponseCode()); return }
+def body = new JsonSlurper().parseText(prev.getResponseDataAsString())
+def expected = Integer.parseInt(props.get('expectedCount'))
+if (body.code != 'OK' || body.data.succeeded != expected || body.data.skipped != 0) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage('정산 완료 건수 또는 실행 결과 불일치')
+}
+</stringProp>
+          </JSR223Assertion>
+          <hashTree />
+        </hashTree>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>

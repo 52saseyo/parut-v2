@@ -1,0 +1,51 @@
+# 실행: docker compose --env-file /dev/null -f docker-compose.perf.yml up -d --build
+# 종료: docker compose --env-file /dev/null -f docker-compose.perf.yml down
+name: parut-settlement-perf
+
+services:
+  postgres-perf:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: settlement_perf
+      POSTGRES_USER: settlement_perf
+      POSTGRES_PASSWORD: settlement_perf_local
+    ports:
+      - "127.0.0.1:55433:5432"
+    volumes:
+      - settlement_perf_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U settlement_perf -d settlement_perf"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  order-perf:
+    networks:
+      - default
+      - monitoring
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: perf
+      PERF_DB_URL: jdbc:postgresql://postgres-perf:5432/settlement_perf
+    ports:
+      - "127.0.0.1:18083:8080"
+    depends_on:
+      postgres-perf:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness || exit 1"]
+      interval: 10s
+      timeout: 3s
+      start_period: 60s
+      retries: 10
+
+volumes:
+  settlement_perf_data:
+
+networks:
+  default: {}
+  monitoring:
+    external: true
+    name: parut-net

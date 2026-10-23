@@ -1,0 +1,44 @@
+# 로컬 독립 검증 전용이며 개발 DB 연결 설정을 사용하지 않는다.
+spring:
+  datasource:
+    url: ${PERF_DB_URL:jdbc:postgresql://localhost:55433/settlement_perf}
+    username: settlement_perf
+    password: settlement_perf_local
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: order_schema
+        format_sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    schemas: order_schema
+    default-schema: order_schema
+
+toss:
+  enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    com.parut.order: info
+    org.hibernate.SQL: warn
+    org.hibernate.orm.jdbc.bind: warn
+
+settlement:
+  completion:
+    chunk-size: 100
+
+app:
+  system-account-id: f9000000-0000-4000-8000-000000000099
