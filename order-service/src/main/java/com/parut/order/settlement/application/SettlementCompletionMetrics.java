@@ -18,6 +18,13 @@ public class SettlementCompletionMetrics {
         return new Measurement();
     }
 
+    /** 커밋된 정산 건수만 누적한다. Job/청크 실행 횟수와 구분한다. */
+    public void recordCompleted(int count) {
+        if (count > 0) {
+            meterRegistry.counter("settlement.completion.records.completed").increment(count);
+        }
+    }
+
     /** 실행마다 생성한다. 싱글턴 컴포넌트에 누적값을 공유하지 않는다. */
     public class Measurement {
 
@@ -32,23 +39,24 @@ public class SettlementCompletionMetrics {
         public void recordSelection(long startedAt) {
             long duration = System.nanoTime() - startedAt;
             selectionNanos += duration;
-            record("selection", duration);
+            record("settlement.completion.selection", duration);
         }
 
-        /** Processor 프록시 호출부터 커밋 후 반환과 호출 측 집계까지 측정한다. */
+        /** Processor 프록시 호출부터 커밋 후 반환과 집계까지 측정하며 실패 청크도 기록한다. */
         public void recordChunk(long startedAt) {
             long duration = System.nanoTime() - startedAt;
             chunkNanos += duration;
-            record("chunk_transaction", duration);
+            record("settlement.completion.chunk", duration);
         }
 
         public void recordMutation(long nanos) {
             mutationNanos += nanos;
-            record("mutation", nanos);
+            record("settlement.completion.update", nanos);
         }
 
+        /** 정상 종료한 Job의 전체 시간만 기록한다. */
         public void recordTotal() {
-            record("total", System.nanoTime() - started);
+            record("settlement.completion.job", System.nanoTime() - started);
         }
 
         public double totalMillis() {
@@ -73,8 +81,8 @@ public class SettlementCompletionMetrics {
         }
     }
 
-    private void record(String phase, long nanos) {
-        meterRegistry.timer("settlement.completion.phase", "phase", phase)
+    private void record(String metricName, long nanos) {
+        meterRegistry.timer(metricName)
                 .record(nanos, TimeUnit.NANOSECONDS);
     }
 

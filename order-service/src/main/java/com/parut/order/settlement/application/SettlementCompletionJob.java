@@ -40,7 +40,7 @@ public class SettlementCompletionJob {
     /**
      * cutoff까지 정산 가능한 후보를 처리한다. sellerId가 없으면 전체 판매자가 대상이다.
      *
-     * <p>조율 작업은 트랜잭션을 열지 않고, 별도 Processor Bean을 호출해 청크별 커밋을 완료한다.
+     * <p>Job은 트랜잭션을 열지 않고 별도 Processor 빈을 호출해 청크별로 커밋한다.
      * 조회 크기와 커밋 단위를 같게 유지하며, cutoff는 실행 중 변경하지 않는 대상 선정 기준이다.
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -81,6 +81,7 @@ public class SettlementCompletionJob {
                         succeeded += result.updated();
                         skipped += ids.size() - result.updated();
                         committedChunks++;
+                        metrics.recordCompleted(result.updated());
                         measurement.recordMutation(result.mutationNanos());
                         cursor = ids.get(ids.size() - 1);
                     } catch (RuntimeException e) {
