@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -49,11 +50,14 @@ public class ProductStockReservationExpirationProcessor {
             return;
         }
 
+        // 재고를 먼저 비관적 락으로 잠근다 - reserve/confirm/restore와 같은 방식·순서 (충돌 대신 대기, 데드락 방지)
+        ProductStock stock = productStockRepository.findAllByIdForUpdate(List.of(reservation.getStockId()))
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_STOCK_NOT_FOUND));
+
         reservation.expire();
         saveReservationSafely(reservation, ErrorCode.PRODUCT_STOCK_RESERVATION_ALREADY_PROCESSED);
-
-        ProductStock stock = productStockRepository.findById(reservation.getStockId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_STOCK_NOT_FOUND));
 
         stock.restore(reservation.getQuantity());
         try {
