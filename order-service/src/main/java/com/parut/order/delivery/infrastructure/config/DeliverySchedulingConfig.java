@@ -4,14 +4,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.convert.DurationStyle;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
-import org.springframework.scheduling.annotation.EnableScheduling;
 
 import lombok.extern.slf4j.Slf4j;
 
+/** 배송 자동완료 실행 간격 Bean을 제공하며, 스케줄링 활성화는 {@link com.parut.order.global.config.SchedulingConfig}가 맡는다. */
 @Configuration
-@Profile("!perf")
-@EnableScheduling
 @Slf4j
 public class DeliverySchedulingConfig {
 

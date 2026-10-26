@@ -36,9 +36,20 @@ logging:
     org.hibernate.SQL: warn
     org.hibernate.orm.jdbc.bind: warn
 
+# 정산 완료 측정에 다른 DB 작업이 섞이지 않도록 배송 자동완료와 자동 구매확정을 끈다.
+delivery:
+  completion:
+    enabled: false
+
+order:
+  auto-confirmation:
+    enabled: false
+
 settlement:
   completion:
     chunk-size: 100
+    # 측정 대기를 줄이기 위해 매분 실행한다.
+    cron: "0 * * * * *"
 
 app:
   system-account-id: f9000000-0000-4000-8000-000000000099

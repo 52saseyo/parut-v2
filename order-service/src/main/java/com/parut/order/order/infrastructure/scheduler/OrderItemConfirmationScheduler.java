@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
  * 벌크 조회와 분산 락은 데이터 규모 또는 다중 인스턴스 경합이 문제가 될 때 재검토한다.
  */
 @Component
+@ConditionalOnProperty(name = "order.auto-confirmation.enabled", havingValue = "true", matchIfMissing = true)
 @RequiredArgsConstructor
 @Slf4j
 public class OrderItemConfirmationScheduler {
