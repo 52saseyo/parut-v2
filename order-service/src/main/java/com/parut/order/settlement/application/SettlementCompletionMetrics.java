@@ -1,6 +1,7 @@
 package com.parut.order.settlement.application;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.springframework.stereotype.Component;
 
@@ -29,24 +30,22 @@ public class SettlementCompletionMetrics {
     public class Measurement {
 
         private final long started = System.nanoTime();
-        private long selectionNanos;
         private long chunkNanos;
         private long mutationNanos;
 
         private Measurement() {
         }
 
-        public void recordSelection(long startedAt) {
-            long duration = System.nanoTime() - startedAt;
-            selectionNanos += duration;
-            record("settlement.completion.selection", duration);
-        }
-
-        /** Processor 프록시 호출부터 커밋 후 반환과 집계까지 측정하며 실패 청크도 기록한다. */
-        public void recordChunk(long startedAt) {
-            long duration = System.nanoTime() - startedAt;
-            chunkNanos += duration;
-            record("settlement.completion.chunk", duration);
+        /** Processor 프록시 호출부터 커밋 후 반환까지 측정하며 실패 청크도 기록한다. */
+        public <T, R> R chunk(T input, Function<T, R> action) {
+            long startedAt = System.nanoTime();
+            try {
+                return action.apply(input);
+            } finally {
+                long duration = System.nanoTime() - startedAt;
+                chunkNanos += duration;
+                record("settlement.completion.chunk", duration);
+            }
         }
 
         public void recordMutation(long nanos) {
@@ -61,10 +60,6 @@ public class SettlementCompletionMetrics {
 
         public double totalMillis() {
             return millis(System.nanoTime() - started);
-        }
-
-        public double selectionMillis() {
-            return millis(selectionNanos);
         }
 
         public double chunkMillis() {

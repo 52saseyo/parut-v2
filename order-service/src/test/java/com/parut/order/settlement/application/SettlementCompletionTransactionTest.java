@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Limit;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -121,7 +121,6 @@ class SettlementCompletionTransactionTest {
         assertThat(completedRecordCount() - countBefore).isEqualTo(103);
         assertThat(meterRegistry.get("settlement.completion.job").timer().count()).isPositive();
         assertThat(meterRegistry.get("settlement.completion.chunk").timer().count()).isGreaterThanOrEqualTo(2);
-        assertThat(meterRegistry.get("settlement.completion.selection").timer().count()).isPositive();
         assertThat(meterRegistry.get("settlement.completion.update").timer().count()).isGreaterThanOrEqualTo(2);
 
         SettlementCompletionJob.CompletionRun rerun = completionJob.run(COMPLETION_TIME, ADMIN_ID, sellerId);
@@ -139,7 +138,7 @@ class SettlementCompletionTransactionTest {
         UUID sellerId = UUID.randomUUID();
         savePendingSettlements(sellerId, 210);
         List<UUID> ids = settlementRepository.findCompletionCandidateIds(
-                SettlementStatus.PENDING, COMPLETION_TIME, new UUID(0, 0), sellerId, PageRequest.of(0, 101));
+                SettlementStatus.PENDING, COMPLETION_TIME, new UUID(0, 0), sellerId, Limit.of(101));
         UUID blockedId = ids.get(100);
         double countBefore = completedRecordCount();
         jdbcTemplate.execute("ALTER TABLE p_settlements ADD CONSTRAINT block_completion_metrics "

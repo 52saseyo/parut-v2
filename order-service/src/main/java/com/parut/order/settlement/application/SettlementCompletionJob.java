@@ -6,7 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,24 +59,24 @@ public class SettlementCompletionJob {
         int skipped = 0;
         int committedChunks = 0;
         int chunkNumber = 0;
-        int pages = 0;
+        // 후보 조회 호출 횟수. 마지막 빈 조회까지 포함하므로 청크 수보다 1 많을 수 있다.
+        int selections = 0;
+        // 정산 ID(PK) 기준 커서. 가장 작은 UUID에서 시작해 직전 청크의 마지막 ID 다음부터 조회한다.
         UUID cursor = new UUID(0, 0);
         log.info("정산 자동완료 시작 runId={}, cutoff={}, sellerId={}", runId, cutoff, sellerId);
         try {
             List<UUID> ids;
+            // 조회 결과가 청크 크기보다 적으면 남은 대상이 없으므로 반복을 끝낸다.
             do {
-                long selected = System.nanoTime();
                 ids = settlementRepository.findCompletionCandidateIds(
-                        SettlementStatus.PENDING, cutoff, cursor, sellerId, PageRequest.of(0, chunkSize));
-                measurement.recordSelection(selected);
-                pages++;
+                        SettlementStatus.PENDING, cutoff, cursor, sellerId, Limit.of(chunkSize));
+                selections++;
                 if (!ids.isEmpty()) {
                     chunkNumber++;
                     candidates += ids.size();
-                    long chunkStarted = System.nanoTime();
                     try {
-                        SettlementCompletionProcessor.ChunkCompletion result =
-                                completionProcessor.completeChunk(ids, processedBy, cutoff);
+                        SettlementCompletionProcessor.ChunkCompletion result = measurement.chunk(ids,
+                                chunkIds -> completionProcessor.completeChunk(chunkIds, processedBy, cutoff));
                         // 정상 반환은 프록시의 커밋까지 성공한 뒤이므로 그때만 집계와 커서를 진행한다.
                         succeeded += result.updated();
                         skipped += ids.size() - result.updated();
@@ -88,13 +88,11 @@ public class SettlementCompletionJob {
                         log.error("정산 자동완료 청크 실패 runId={}, chunk={}, firstId={}, lastId={}, count={}",
                                 runId, chunkNumber, ids.get(0), ids.get(ids.size() - 1), ids.size());
                         throw e;
-                    } finally {
-                        measurement.recordChunk(chunkStarted);
                     }
                 }
             } while (ids.size() == chunkSize);
-            CompletionRun result = new CompletionRun(runId, cutoff, candidates, succeeded, skipped, pages,
-                    committedChunks, measurement.totalMillis(), measurement.selectionMillis(),
+            CompletionRun result = new CompletionRun(runId, cutoff, candidates, succeeded, skipped, selections,
+                    committedChunks, measurement.totalMillis(),
                     measurement.chunkMillis(), measurement.mutationMillis(), measurement.boundaryMillis());
             measurement.recordTotal();
             log.info("정산 자동완료 종료 result={}", result);
@@ -114,8 +112,8 @@ public class SettlementCompletionJob {
      * mutation은 chunkTransactionMs에 포함되며, transactionBoundaryMs는 순수 커밋 시간이 아니다.
      */
     public record CompletionRun(UUID runId, Instant cutoff, int candidates, int succeeded, int skipped,
-                                int pages, int committedChunks, double totalMs,
-                                double selectionMs, double chunkTransactionMs, double mutationMs,
+                                int selections, int committedChunks, double totalMs,
+                                double chunkTransactionMs, double mutationMs,
                                 double transactionBoundaryMs) {
     }
 }
