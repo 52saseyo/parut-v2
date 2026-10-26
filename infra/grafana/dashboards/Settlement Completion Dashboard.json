@@ -75,7 +75,7 @@
     {
       "type": "stat",
       "title": "처리 완료 건수",
-      "description": "정상 종료한 테스트만 분리하고 실행 전후 수집값이 있는 구간에서 사용합니다. 실패/다른 실행/재시작/reset이 섞이면 적용하지 않습니다. 선택 시각 이전의 최신 표본 차이이며 실시간 운영 집계용이 아닙니다. 실행 ID는 로그 상세만 필터링합니다.",
+      "description": "선택한 시간 범위에 커밋까지 끝난 정산 건수입니다. 실행 한 번만 들어가도록 시간 범위를 좁혀서 보세요. 선택한 시간 범위에 서버 재시작이 들어가면 재시작 전 값이 섞여 틀린 값이 나옵니다. 재시작 이후 구간만 선택하세요.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -84,7 +84,7 @@
         "x": 0,
         "y": 1,
         "w": 8,
-        "h": 6
+        "h": 4
       },
       "targets": [
         {
@@ -116,14 +116,17 @@
         "textMode": "value",
         "colorMode": "none",
         "graphMode": "none",
-        "justifyMode": "auto"
+        "justifyMode": "auto",
+        "text": {
+          "valueSize": 32
+        }
       },
       "id": 21
     },
     {
       "type": "stat",
       "title": "전체 실행시간",
-      "description": "정상 종료한 테스트만 분리하고 실행 전후 수집값이 있는 구간에서 사용합니다. 실패/다른 실행/재시작/reset이 섞이면 적용하지 않습니다. 선택 시각 이전의 최신 표본 차이이며 실시간 운영 집계용이 아닙니다. 실행 ID는 로그 상세만 필터링합니다.",
+      "description": "선택한 시간 범위에 정상 종료한 정산 작업의 실행 시간입니다. 범위에 실행이 한 번이면 그 실행의 시간입니다. 선택한 시간 범위에 서버 재시작이 들어가면 재시작 전 값이 섞여 틀린 값이 나옵니다. 재시작 이후 구간만 선택하세요.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -132,7 +135,7 @@
         "x": 8,
         "y": 1,
         "w": 8,
-        "h": 6
+        "h": 4
       },
       "targets": [
         {
@@ -145,8 +148,8 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "ms",
-          "decimals": 3,
+          "unit": "suffix: ms",
+          "decimals": 1,
           "min": 0,
           "noValue": "기준값 없음"
         },
@@ -164,14 +167,17 @@
         "textMode": "value",
         "colorMode": "none",
         "graphMode": "none",
-        "justifyMode": "auto"
+        "justifyMode": "auto",
+        "text": {
+          "valueSize": 32
+        }
       },
       "id": 27
     },
     {
       "type": "stat",
-      "title": "초당 정산 처리 건수 (rows/s)",
-      "description": "정상 종료한 테스트만 분리하고 실행 전후 수집값이 있는 구간에서 사용합니다. 실패/다른 실행/재시작/reset이 섞이면 적용하지 않습니다. 선택 시각 이전의 최신 표본 차이이며 실시간 운영 집계용이 아닙니다. 실행 ID는 로그 상세만 필터링합니다.",
+      "title": "초당 정산 처리 건수",
+      "description": "처리 완료 건수 ÷ 전체 실행시간(초). 1초에 완료한 정산 행 수(rows/s)입니다. 선택한 시간 범위에 서버 재시작이 들어가면 재시작 전 값이 섞여 틀린 값이 나옵니다. 재시작 이후 구간만 선택하세요.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -180,7 +186,7 @@
         "x": 16,
         "y": 1,
         "w": 8,
-        "h": 6
+        "h": 4
       },
       "targets": [
         {
@@ -212,7 +218,10 @@
         "textMode": "value",
         "colorMode": "none",
         "graphMode": "none",
-        "justifyMode": "auto"
+        "justifyMode": "auto",
+        "text": {
+          "valueSize": 32
+        }
       },
       "id": 22
     },
@@ -222,7 +231,7 @@
       "description": "",
       "gridPos": {
         "x": 0,
-        "y": 7,
+        "y": 5,
         "w": 24,
         "h": 1
       },
@@ -233,16 +242,16 @@
     {
       "type": "timeseries",
       "title": "Hikari Active / Idle / Pending",
-      "description": "선택 기간과 인스턴스의 Prometheus 메트릭입니다. Hikari 통계 약 1초 갱신/Prometheus 5초 수집으로 짧은 대기를 놓칠 수 있습니다.",
+      "description": "Active는 사용 중, Idle은 대기 중, Pending은 커넥션을 기다리는 요청 수입니다. 5초마다 수집해서 1초 미만 작업의 순간 값은 잡히지 않을 수 있습니다.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
         "x": 0,
-        "y": 8,
+        "y": 6,
         "w": 8,
-        "h": 7
+        "h": 9
       },
       "targets": [
         {
@@ -276,8 +285,13 @@
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "max",
+            "mean"
+          ]
         },
         "tooltip": {
           "mode": "multi"
@@ -288,16 +302,16 @@
     {
       "type": "timeseries",
       "title": "평균 커넥션 획득 시간",
-      "description": "선택 기간과 인스턴스의 Prometheus 메트릭입니다. Hikari 통계 약 1초 갱신/Prometheus 5초 수집으로 짧은 대기를 놓칠 수 있습니다. 연결 획득 평균의 rate 조회 구간이 화면 시작 시각 이전을 포함할 수 있어 단일 실행 전용 평균은 아닙니다.",
+      "description": "풀에서 커넥션을 얻는 데 걸린 평균 시간입니다. 커지면 풀이 부족하다는 신호입니다.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
         "x": 8,
-        "y": 8,
+        "y": 6,
         "w": 8,
-        "h": 7
+        "h": 9
       },
       "targets": [
         {
@@ -317,8 +331,13 @@
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "max",
+            "mean"
+          ]
         },
         "tooltip": {
           "mode": "multi"
@@ -329,16 +348,16 @@
     {
       "type": "timeseries",
       "title": "커넥션 타임아웃 (누적)",
-      "description": "선택 기간과 인스턴스의 Prometheus 메트릭입니다. Hikari 통계 약 1초 갱신/Prometheus 5초 수집으로 짧은 대기를 놓칠 수 있습니다.",
+      "description": "커넥션을 제때 얻지 못해 실패한 누적 횟수입니다. 측정 중에 늘면 풀이 고갈된 것입니다.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
         "x": 16,
-        "y": 8,
+        "y": 6,
         "w": 8,
-        "h": 7
+        "h": 9
       },
       "targets": [
         {
@@ -382,7 +401,7 @@
     },
     {
       "type": "timeseries",
-      "title": "CPU 사용률 (Process / System)",
+      "title": "CPU 사용률",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -396,7 +415,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "process_cpu_usage{job=\"order-perf\",instance=~\"${instance:regex}\"}",
+          "expr": "sum(rate(process_cpu_time_ns_total{job=\"order-perf\",instance=~\"${instance:regex}\"}[$__rate_interval])) / 1000000000 / max(system_cpu_count{job=\"order-perf\",instance=~\"${instance:regex}\"})",
           "legendFormat": "Process",
           "range": true,
           "interval": "5s"
@@ -418,14 +437,20 @@
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "max",
+            "mean"
+          ]
         },
         "tooltip": {
           "mode": "multi"
         }
       },
-      "id": 29
+      "id": 29,
+      "description": "Process는 주문 서비스 JVM이 실제로 사용한 CPU 시간의 증가율(전체 코어 대비), System은 Docker 가상 머신 전체의 순간 사용률입니다. 개선 전후 비교는 Process 기준으로 보세요. 이미지 빌드 중에는 System이 함께 올라갑니다."
     },
     {
       "type": "row",
@@ -442,7 +467,7 @@
         {
           "type": "stat",
           "title": "처리 완료 건수",
-          "description": "정상 종료/중단 로그의 커밋 완료 건수. 중단 전 완료 건수도 표시한다.",
+          "description": "선택한 실행 로그의 완료 건수입니다. 중단된 실행도 중단 전까지 완료한 건수를 보여줍니다.",
           "datasource": {
             "type": "loki",
             "uid": "loki"
@@ -456,7 +481,7 @@
           "targets": [
             {
               "refId": "A",
-              "expr": "(max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), selectionMs=(?P<selection_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])) or max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])))",
+              "expr": "(max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])) or max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])))",
               "queryType": "instant",
               "editorMode": "code"
             }
@@ -483,14 +508,17 @@
             },
             "colorMode": "value",
             "graphMode": "none",
-            "textMode": "auto"
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
+            }
           },
           "id": 3
         },
         {
           "type": "stat",
           "title": "전체 실행시간",
-          "description": "선택한 정상 종료 로그의 totalMs. 중단 로그에는 전체 시간이 없어 기록 없음으로 표시한다.",
+          "description": "선택한 정상 실행의 Job 실행 시간(로그의 totalMs)입니다. 중단된 실행은 값이 없습니다.",
           "datasource": {
             "type": "loki",
             "uid": "loki"
@@ -504,15 +532,15 @@
           "targets": [
             {
               "refId": "A",
-              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), selectionMs=(?P<selection_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap total_ms | __error__ = \"\" [$__range]))",
+              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap total_ms | __error__ = \"\" [$__range]))",
               "queryType": "instant",
               "editorMode": "code"
             }
           ],
           "fieldConfig": {
             "defaults": {
-              "unit": "ms",
-              "decimals": 3,
+              "unit": "suffix: ms",
+              "decimals": 1,
               "noValue": "기록 없음",
               "color": {
                 "mode": "fixed",
@@ -531,14 +559,17 @@
             },
             "colorMode": "value",
             "graphMode": "none",
-            "textMode": "auto"
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
+            }
           },
           "id": 4
         },
         {
           "type": "stat",
-          "title": "초당 정산 처리 건수 (rows/s)",
-          "description": "선택한 정상 실행의 완료 건수 / 전체 실행시간(초).",
+          "title": "초당 정산 처리 건수",
+          "description": "선택한 정상 실행의 완료 건수 ÷ 전체 실행시간(초)입니다.",
           "datasource": {
             "type": "loki",
             "uid": "loki"
@@ -552,7 +583,7 @@
           "targets": [
             {
               "refId": "A",
-              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), selectionMs=(?P<selection_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])) / max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), selectionMs=(?P<selection_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap total_ms | __error__ = \"\" [$__range])) * 1000",
+              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])) / max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap total_ms | __error__ = \"\" [$__range])) * 1000",
               "queryType": "instant",
               "editorMode": "code"
             }
@@ -579,14 +610,17 @@
             },
             "colorMode": "value",
             "graphMode": "none",
-            "textMode": "auto"
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
+            }
           },
           "id": 5
         },
         {
           "type": "stat",
           "title": "실행 결과",
-          "description": "종료 로그가 있는 정상 실행과 중단 로그를 구분한다. 기록 없음은 미실행/로그 미수집/기간 밖을 구분하지 않는다.",
+          "description": "정상 종료인지 중단인지 보여줍니다. 기록 없음은 실행되지 않았거나 로그가 아직 수집되지 않은 경우입니다.",
           "datasource": {
             "type": "loki",
             "uid": "loki"
@@ -600,7 +634,7 @@
           "targets": [
             {
               "refId": "A",
-              "expr": "sum(count_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), selectionMs=(?P<selection_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" [$__range])) or (sum(count_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" [$__range])) * -1)",
+              "expr": "sum(count_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" [$__range])) or (sum(count_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" [$__range])) * -1)",
               "queryType": "instant",
               "editorMode": "code"
             }
@@ -642,14 +676,17 @@
             },
             "colorMode": "value",
             "graphMode": "none",
-            "textMode": "auto"
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
+            }
           },
           "id": 6
         },
         {
           "type": "stat",
-          "title": "대상 조회 누적시간",
-          "description": "",
+          "title": "UPDATE 누적시간",
+          "description": "벌크 UPDATE 호출 시간의 합계입니다. 청크 트랜잭션 시간 안에 포함됩니다.",
           "datasource": {
             "type": "loki",
             "uid": "loki"
@@ -657,21 +694,21 @@
           "gridPos": {
             "x": 0,
             "y": 28,
-            "w": 6,
+            "w": 8,
             "h": 4
           },
           "targets": [
             {
               "refId": "A",
-              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), selectionMs=(?P<selection_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap selection_ms | __error__ = \"\" [$__range]))",
+              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap update_ms | __error__ = \"\" [$__range]))",
               "queryType": "instant",
               "editorMode": "code"
             }
           ],
           "fieldConfig": {
             "defaults": {
-              "unit": "ms",
-              "decimals": 3,
+              "unit": "suffix: ms",
+              "decimals": 1,
               "noValue": "기록 없음",
               "color": {
                 "mode": "fixed",
@@ -690,84 +727,39 @@
             },
             "colorMode": "value",
             "graphMode": "none",
-            "textMode": "auto"
-          },
-          "id": 7
-        },
-        {
-          "type": "stat",
-          "title": "UPDATE 누적시간",
-          "description": "",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "gridPos": {
-            "x": 6,
-            "y": 28,
-            "w": 6,
-            "h": 4
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), selectionMs=(?P<selection_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap update_ms | __error__ = \"\" [$__range]))",
-              "queryType": "instant",
-              "editorMode": "code"
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
             }
-          ],
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ms",
-              "decimals": 3,
-              "noValue": "기록 없음",
-              "color": {
-                "mode": "fixed",
-                "fixedColor": "green"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "colorMode": "value",
-            "graphMode": "none",
-            "textMode": "auto"
           },
           "id": 8
         },
         {
           "type": "stat",
           "title": "청크 트랜잭션 누적시간",
-          "description": "커밋 포함. UPDATE는 이 시간 안에 포함되며 전체 시간에 중복 합산하지 않는다.",
+          "description": "청크 처리부터 커밋까지의 시간 합계입니다. UPDATE 시간을 포함하므로 둘을 더하지 마세요.",
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
           "gridPos": {
-            "x": 12,
+            "x": 8,
             "y": 28,
-            "w": 6,
+            "w": 8,
             "h": 4
           },
           "targets": [
             {
               "refId": "A",
-              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), selectionMs=(?P<selection_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunk_ms | __error__ = \"\" [$__range]))",
+              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunk_ms | __error__ = \"\" [$__range]))",
               "queryType": "instant",
               "editorMode": "code"
             }
           ],
           "fieldConfig": {
             "defaults": {
-              "unit": "ms",
-              "decimals": 3,
+              "unit": "suffix: ms",
+              "decimals": 1,
               "noValue": "기록 없음",
               "color": {
                 "mode": "fixed",
@@ -786,28 +778,31 @@
             },
             "colorMode": "value",
             "graphMode": "none",
-            "textMode": "auto"
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
+            }
           },
           "id": 9
         },
         {
           "type": "stat",
           "title": "커밋 완료 청크 수",
-          "description": "",
+          "description": "커밋까지 끝난 청크 수입니다. 10,000건이면 100입니다.",
           "datasource": {
             "type": "loki",
             "uid": "loki"
           },
           "gridPos": {
-            "x": 18,
+            "x": 16,
             "y": 28,
-            "w": 6,
+            "w": 8,
             "h": 4
           },
           "targets": [
             {
               "refId": "A",
-              "expr": "(max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), selectionMs=(?P<selection_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunks | __error__ = \"\" [$__range])) or max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunks | __error__ = \"\" [$__range])))",
+              "expr": "(max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunks | __error__ = \"\" [$__range])) or max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunks | __error__ = \"\" [$__range])))",
               "queryType": "instant",
               "editorMode": "code"
             }
@@ -834,7 +829,10 @@
             },
             "colorMode": "value",
             "graphMode": "none",
-            "textMode": "auto"
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
+            }
           },
           "id": 10
         },
@@ -873,7 +871,7 @@
         {
           "type": "table",
           "title": "실행 이력",
-          "description": "검색 기간의 종료/중단 로그에서 추출한다. 실행 ID는 Loki 인덱스 라벨로 저장하지 않는다. 중단 실행의 전체 시간은 현재 로그에 없어 비어 있다. 최대 1,000행.",
+          "description": "기간 안의 실행별 결과 표입니다(최대 1,000행).",
           "datasource": {
             "type": "loki",
             "uid": "loki"
