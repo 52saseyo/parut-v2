@@ -1,0 +1,992 @@
+{
+  "id": null,
+  "uid": "settlement-completion",
+  "title": "Settlement Completion Performance Dashboard",
+  "description": "선택한 정상 테스트 구간의 완료 건수, 전체 실행시간과 초당 정산 처리 건수를 PromQL로 확인합니다. 실행 전후 수집 표본이 필요하며 로그 상세는 별도로 구분합니다.",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "Asia/Seoul",
+  "editable": true,
+  "refresh": "15s",
+  "tags": [
+    "settlement"
+  ],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "label": "정산 서버",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(up{job=\"order-perf\"}, instance)",
+        "query": {
+          "query": "label_values(up{job=\"order-perf\"}, instance)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "order-perf:8080",
+          "value": "order-perf:8080"
+        }
+      },
+      {
+        "name": "run_id",
+        "label": "실행 ID",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "description": "아래 실행 상세의 로그만 필터링합니다. 상단 측정 결과는 선택 기간과 인스턴스 기준입니다."
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "측정 결과",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "처리 완료 건수",
+      "description": "선택한 시간 범위에 커밋까지 끝난 정산 건수입니다. 실행 한 번만 들어가도록 시간 범위를 좁혀서 보세요. 선택한 시간 범위에 서버 재시작이 들어가면 재시작 전 값이 섞여 틀린 값이 나옵니다. 재시작 이후 구간만 선택하세요.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(settlement_completion_records_completed_total{job=\"order-perf\",instance=~\"${instance:regex}\"} - settlement_completion_records_completed_total{job=\"order-perf\",instance=~\"${instance:regex}\"} offset ${__range_s}s)",
+          "instant": true,
+          "range": false,
+          "legendFormat": "처리 완료 건수"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "min": 0,
+          "noValue": "기준값 없음"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "text": {
+          "valueSize": 32
+        }
+      },
+      "id": 21
+    },
+    {
+      "type": "stat",
+      "title": "전체 실행시간",
+      "description": "선택한 시간 범위에 정상 종료한 정산 작업의 실행 시간입니다. 범위에 실행이 한 번이면 그 실행의 시간입니다. 선택한 시간 범위에 서버 재시작이 들어가면 재시작 전 값이 섞여 틀린 값이 나옵니다. 재시작 이후 구간만 선택하세요.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(settlement_completion_job_seconds_sum{job=\"order-perf\",instance=~\"${instance:regex}\"} - settlement_completion_job_seconds_sum{job=\"order-perf\",instance=~\"${instance:regex}\"} offset ${__range_s}s) * 1000",
+          "instant": true,
+          "range": false,
+          "legendFormat": "전체 실행시간"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: ms",
+          "decimals": 1,
+          "min": 0,
+          "noValue": "기준값 없음"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "text": {
+          "valueSize": 32
+        }
+      },
+      "id": 27
+    },
+    {
+      "type": "stat",
+      "title": "초당 정산 처리 건수",
+      "description": "처리 완료 건수 ÷ 전체 실행시간(초). 1초에 완료한 정산 행 수(rows/s)입니다. 선택한 시간 범위에 서버 재시작이 들어가면 재시작 전 값이 섞여 틀린 값이 나옵니다. 재시작 이후 구간만 선택하세요.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(settlement_completion_records_completed_total{job=\"order-perf\",instance=~\"${instance:regex}\"} - settlement_completion_records_completed_total{job=\"order-perf\",instance=~\"${instance:regex}\"} offset ${__range_s}s) / (sum(settlement_completion_job_seconds_sum{job=\"order-perf\",instance=~\"${instance:regex}\"} - settlement_completion_job_seconds_sum{job=\"order-perf\",instance=~\"${instance:regex}\"} offset ${__range_s}s))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "초당 정산 처리 건수"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: rows/s",
+          "decimals": 1,
+          "min": 0,
+          "noValue": "기준값 없음"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "text": {
+          "valueSize": 32
+        }
+      },
+      "id": 22
+    },
+    {
+      "type": "row",
+      "title": "DB 커넥션",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": [],
+      "id": 23
+    },
+    {
+      "type": "timeseries",
+      "title": "Hikari Active / Idle / Pending",
+      "description": "Active는 사용 중, Idle은 대기 중, Pending은 커넥션을 기다리는 요청 수입니다. 5초마다 수집해서 1초 미만 작업의 순간 값은 잡히지 않을 수 있습니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "hikaricp_connections_active{job=\"order-perf\",instance=~\"${instance:regex}\"}",
+          "legendFormat": "Active",
+          "range": true,
+          "interval": "5s"
+        },
+        {
+          "refId": "B",
+          "expr": "hikaricp_connections_idle{job=\"order-perf\",instance=~\"${instance:regex}\"}",
+          "legendFormat": "Idle",
+          "range": true,
+          "interval": "5s"
+        },
+        {
+          "refId": "C",
+          "expr": "hikaricp_connections_pending{job=\"order-perf\",instance=~\"${instance:regex}\"}",
+          "legendFormat": "Pending",
+          "range": true,
+          "interval": "5s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 24
+    },
+    {
+      "type": "timeseries",
+      "title": "평균 커넥션 획득 시간",
+      "description": "풀에서 커넥션을 얻는 데 걸린 평균 시간입니다. 커지면 풀이 부족하다는 신호입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 6,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(hikaricp_connections_acquire_seconds_sum{job=\"order-perf\",instance=~\"${instance:regex}\"}[$__rate_interval])) / sum(rate(hikaricp_connections_acquire_seconds_count{job=\"order-perf\",instance=~\"${instance:regex}\"}[$__rate_interval])) * 1000",
+          "legendFormat": "연결 획득 평균",
+          "range": true,
+          "interval": "5s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 25
+    },
+    {
+      "type": "timeseries",
+      "title": "커넥션 타임아웃 (누적)",
+      "description": "커넥션을 제때 얻지 못해 실패한 누적 횟수입니다. 측정 중에 늘면 풀이 고갈된 것입니다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 6,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "hikaricp_connections_timeout_total{job=\"order-perf\",instance=~\"${instance:regex}\"}",
+          "legendFormat": "timeout 누적",
+          "range": true,
+          "interval": "5s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 26
+    },
+    {
+      "type": "row",
+      "title": "자원 사용량",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 15,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [],
+      "id": 28
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU 사용률",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(process_cpu_time_ns_total{job=\"order-perf\",instance=~\"${instance:regex}\"}[$__rate_interval])) / 1000000000 / max(system_cpu_count{job=\"order-perf\",instance=~\"${instance:regex}\"})",
+          "legendFormat": "Process",
+          "range": true,
+          "interval": "5s"
+        },
+        {
+          "refId": "B",
+          "expr": "system_cpu_usage{job=\"order-perf\",instance=~\"${instance:regex}\"}",
+          "legendFormat": "System",
+          "range": true,
+          "interval": "5s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 29,
+      "description": "Process는 주문 서비스 JVM이 실제로 사용한 CPU 시간의 증가율(전체 코어 대비), System은 Docker 가상 머신 전체의 순간 사용률입니다. 개선 전후 비교는 Process 기준으로 보세요. 이미지 빌드 중에는 System이 함께 올라갑니다."
+    },
+    {
+      "type": "row",
+      "title": "실행 상세",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": true,
+      "panels": [
+        {
+          "type": "stat",
+          "title": "처리 완료 건수",
+          "description": "선택한 실행 로그의 완료 건수입니다. 중단된 실행도 중단 전까지 완료한 건수를 보여줍니다.",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 24,
+            "w": 6,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "(max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])) or max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])))",
+              "queryType": "instant",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "decimals": 0,
+              "noValue": "기록 없음",
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "green"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
+            }
+          },
+          "id": 3
+        },
+        {
+          "type": "stat",
+          "title": "전체 실행시간",
+          "description": "선택한 정상 실행의 Job 실행 시간(로그의 totalMs)입니다. 중단된 실행은 값이 없습니다.",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "gridPos": {
+            "x": 6,
+            "y": 24,
+            "w": 6,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap total_ms | __error__ = \"\" [$__range]))",
+              "queryType": "instant",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "suffix: ms",
+              "decimals": 1,
+              "noValue": "기록 없음",
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "green"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
+            }
+          },
+          "id": 4
+        },
+        {
+          "type": "stat",
+          "title": "초당 정산 처리 건수",
+          "description": "선택한 정상 실행의 완료 건수 ÷ 전체 실행시간(초)입니다.",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 24,
+            "w": 6,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])) / max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap total_ms | __error__ = \"\" [$__range])) * 1000",
+              "queryType": "instant",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "suffix: rows/s",
+              "decimals": 1,
+              "noValue": "기록 없음",
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "green"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
+            }
+          },
+          "id": 5
+        },
+        {
+          "type": "stat",
+          "title": "실행 결과",
+          "description": "정상 종료인지 중단인지 보여줍니다. 기록 없음은 실행되지 않았거나 로그가 아직 수집되지 않은 경우입니다.",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "gridPos": {
+            "x": 18,
+            "y": 24,
+            "w": 6,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(count_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" [$__range])) or (sum(count_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" [$__range])) * -1)",
+              "queryType": "instant",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "decimals": 0,
+              "noValue": "기록 없음",
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "green"
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "1": {
+                      "text": "정상 종료",
+                      "color": "green"
+                    },
+                    "-1": {
+                      "text": "중단",
+                      "color": "red"
+                    }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
+            }
+          },
+          "id": 6
+        },
+        {
+          "type": "stat",
+          "title": "UPDATE 누적시간",
+          "description": "벌크 UPDATE 호출 시간의 합계입니다. 청크 트랜잭션 시간 안에 포함됩니다.",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 28,
+            "w": 8,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap update_ms | __error__ = \"\" [$__range]))",
+              "queryType": "instant",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "suffix: ms",
+              "decimals": 1,
+              "noValue": "기록 없음",
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "green"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
+            }
+          },
+          "id": 8
+        },
+        {
+          "type": "stat",
+          "title": "청크 트랜잭션 누적시간",
+          "description": "청크 처리부터 커밋까지의 시간 합계입니다. UPDATE 시간을 포함하므로 둘을 더하지 마세요.",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "gridPos": {
+            "x": 8,
+            "y": 28,
+            "w": 8,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunk_ms | __error__ = \"\" [$__range]))",
+              "queryType": "instant",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "suffix: ms",
+              "decimals": 1,
+              "noValue": "기록 없음",
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "green"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
+            }
+          },
+          "id": 9
+        },
+        {
+          "type": "stat",
+          "title": "커밋 완료 청크 수",
+          "description": "커밋까지 끝난 청크 수입니다. 10,000건이면 100입니다.",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "gridPos": {
+            "x": 16,
+            "y": 28,
+            "w": 8,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "(max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunks | __error__ = \"\" [$__range])) or max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunks | __error__ = \"\" [$__range])))",
+              "queryType": "instant",
+              "editorMode": "code"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "decimals": 0,
+              "noValue": "기록 없음",
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "green"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto",
+            "text": {
+              "valueSize": 32
+            }
+          },
+          "id": 10
+        },
+        {
+          "type": "logs",
+          "title": "실행 로그",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 32,
+            "w": 24,
+            "h": 6
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "{platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\"",
+              "queryType": "range",
+              "editorMode": "code",
+              "maxLines": 200
+            }
+          ],
+          "options": {
+            "showTime": true,
+            "sortOrder": "Ascending",
+            "wrapLogMessage": true,
+            "showLabels": false,
+            "enableLogDetails": true
+          },
+          "id": 11,
+          "description": ""
+        },
+        {
+          "type": "table",
+          "title": "실행 이력",
+          "description": "기간 안의 실행별 결과 표입니다(최대 1,000행).",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 38,
+            "w": 24,
+            "h": 7
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "{platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |~ \"정산 자동완료 (종료|중단)\" | regexp `정산 자동완료 (?P<result>종료|중단)` | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | regexp `totalMs=(?P<total_ms>[0-9.]+)` | run_id != \"\" | line_format `{\"run_id\":\"{{.run_id}}\",\"result\":\"{{.result}}\",\"completed\":\"{{.completed}}\",\"total_ms\":\"{{.total_ms}}\",\"chunks\":\"{{.chunks}}\",\"skipped\":\"{{.skipped}}\"}`",
+              "queryType": "range",
+              "editorMode": "code",
+              "maxLines": 1000
+            }
+          ],
+          "transformations": [
+            {
+              "id": "extractFields",
+              "options": {
+                "source": "Line",
+                "format": "json",
+                "replace": true,
+                "keepTime": true
+              }
+            },
+            {
+              "id": "convertFieldType",
+              "options": {
+                "conversions": [
+                  {
+                    "targetField": "completed",
+                    "destinationType": "number"
+                  },
+                  {
+                    "targetField": "chunks",
+                    "destinationType": "number"
+                  },
+                  {
+                    "targetField": "skipped",
+                    "destinationType": "number"
+                  }
+                ],
+                "fields": {}
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {},
+                "indexByName": {
+                  "Time": 0,
+                  "run_id": 1,
+                  "result": 2,
+                  "completed": 3,
+                  "total_ms": 4,
+                  "chunks": 5,
+                  "skipped": 6
+                },
+                "renameByName": {
+                  "Time": "로그 시각",
+                  "run_id": "실행 ID",
+                  "result": "결과",
+                  "completed": "완료 건수",
+                  "total_ms": "전체 시간(ms)",
+                  "chunks": "커밋 청크",
+                  "skipped": "제외 건수"
+                }
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto",
+                "displayMode": "auto",
+                "filterable": true
+              },
+              "noValue": "기록 없음"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "실행 ID"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "이 실행 선택",
+                        "url": "/d/settlement-completion?${__url_time_range}&var-instance=${instance:percentencode}&var-run_id=${__value.raw}",
+                        "oneClick": true
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          },
+          "id": 13
+        }
+      ],
+      "id": 2
+    }
+  ]
+}

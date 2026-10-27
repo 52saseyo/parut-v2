@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
  * 잘못된 간격은 기본 60초로 대체한다. 완료 대기 시간은 실행 시 검증한다.
  */
 @Component
+@ConditionalOnProperty(name = "delivery.completion.enabled", havingValue = "true", matchIfMissing = true)
 @RequiredArgsConstructor
 @Slf4j
 public class DeliveryCompletionScheduler {
