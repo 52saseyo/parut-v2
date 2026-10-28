@@ -30,150 +30,36 @@
     "cursorSync": "Crosshair",
     "editable": true,
     "elements": {
-      "panel-summary": {
+      "panel-summary-success": {
         "kind": "Panel",
         "spec": {
           "id": 4,
-          "title": "Run Summary",
-          "description": "선택한 시간 범위의 성공·실패, 생성 알림, 평균 처리시간과 범위 평균 처리율을 요약합니다.",
+          "title": "성공 Fan-out",
+          "description": "선택한 시간 범위에서 정상 완료된 Fan-out 이벤트 수입니다.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
             "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "prometheus"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "sum(last_over_time(notification_fanout_total_seconds_count{result=\"success\"}[$__range]) - first_over_time(notification_fanout_total_seconds_count{result=\"success\"}[$__range])) or vector(0)",
-                        "instant": true,
-                        "legendFormat": "Successful Fan-outs",
-                        "range": false
-                      }
-                    },
-                    "refId": "A",
-                    "hidden": false
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "prometheus"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "sum(last_over_time(notification_fanout_notifications_total[$__range]) - first_over_time(notification_fanout_notifications_total[$__range])) or vector(0)",
-                        "instant": true,
-                        "legendFormat": "Created Notifications",
-                        "range": false
-                      }
-                    },
-                    "refId": "B",
-                    "hidden": false
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "prometheus"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "sum(last_over_time(notification_fanout_total_seconds_count{result=\"failure\"}[$__range]) - first_over_time(notification_fanout_total_seconds_count{result=\"failure\"}[$__range])) or vector(0)",
-                        "instant": true,
-                        "legendFormat": "Failures",
-                        "range": false
-                      }
-                    },
-                    "refId": "C",
-                    "hidden": false
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "prometheus"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "1000 * sum(last_over_time(notification_fanout_total_seconds_sum{result=\"success\"}[$__range]) - first_over_time(notification_fanout_total_seconds_sum{result=\"success\"}[$__range])) / sum(last_over_time(notification_fanout_total_seconds_count{result=\"success\"}[$__range]) - first_over_time(notification_fanout_total_seconds_count{result=\"success\"}[$__range]))",
-                        "instant": true,
-                        "legendFormat": "Average Duration",
-                        "range": false
-                      }
-                    },
-                    "refId": "D",
-                    "hidden": false
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "prometheus"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "sum(increase(notification_fanout_total_seconds_count{result=\"success\"}[$__range])) / $__range_s",
-                        "instant": true,
-                        "legendFormat": "Range Fan-out TPS",
-                        "range": false
-                      }
-                    },
-                    "refId": "E",
-                    "hidden": false
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "query": {
-                      "kind": "DataQuery",
-                      "group": "prometheus",
-                      "version": "v0",
-                      "datasource": {
-                        "name": "prometheus"
-                      },
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "sum(increase(notification_fanout_notifications_total[$__range])) / $__range_s",
-                        "instant": true,
-                        "legendFormat": "Range Notification Rate",
-                        "range": false
-                      }
-                    },
-                    "refId": "F",
-                    "hidden": false
-                  }
+              "queries": [{
+                "kind": "PanelQuery",
+                "spec": {
+                  "query": {
+                    "kind": "DataQuery",
+                    "group": "prometheus",
+                    "version": "v0",
+                    "datasource": { "name": "prometheus" },
+                    "spec": {
+                      "editorMode": "code",
+                      "expr": "sum(last_over_time(notification_fanout_total_seconds_count{result=\"success\"}[$__range]) - first_over_time(notification_fanout_total_seconds_count{result=\"success\"}[$__range])) or vector(0)",
+                      "instant": true,
+                      "legendFormat": "성공 Fan-out",
+                      "range": false
+                    }
+                  },
+                  "refId": "A",
+                  "hidden": false
                 }
-              ],
+              }],
               "transformations": [],
               "queryOptions": {}
             }
@@ -184,133 +70,246 @@
             "version": "13.2.2",
             "spec": {
               "options": {
-                "colorMode": "value",
-                "graphMode": "none",
-                "justifyMode": "auto",
-                "orientation": "vertical",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": false
-                },
-                "showPercentChange": false,
-                "textMode": "value_and_name",
-                "wideLayout": true
+                "colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "vertical",
+                "percentChangeColorMode": "standard", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+                "showPercentChange": false, "textMode": "value", "wideLayout": true
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "short",
-                  "decimals": 0,
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "value": null,
-                        "color": "green"
-                      }
-                    ]
-                  }
+                  "unit": "short", "decimals": 0, "color": { "mode": "thresholds" },
+                  "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }] }
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Failures"
-                    },
-                    "properties": [
-                      {
-                        "id": "thresholds",
-                        "value": {
-                          "mode": "absolute",
-                          "steps": [
-                            {
-                              "value": null,
-                              "color": "green"
-                            },
-                            {
-                              "value": 1,
-                              "color": "red"
-                            }
-                          ]
-                        }
-                      }
-                    ]
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-summary-created": {
+        "kind": "Panel",
+        "spec": {
+          "id": 11,
+          "title": "생성 알림 수",
+          "description": "선택한 시간 범위에서 생성된 알림의 총합입니다.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [{
+                "kind": "PanelQuery",
+                "spec": {
+                  "query": {
+                    "kind": "DataQuery", "group": "prometheus", "version": "v0", "datasource": { "name": "prometheus" },
+                    "spec": {
+                      "editorMode": "code",
+                      "expr": "sum(last_over_time(notification_fanout_notifications_total[$__range]) - first_over_time(notification_fanout_notifications_total[$__range])) or vector(0)",
+                      "instant": true, "legendFormat": "생성 알림 수", "range": false
+                    }
                   },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Average Duration"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "ms"
-                      },
-                      {
-                        "id": "decimals",
-                        "value": 0
-                      },
-                      {
-                        "id": "thresholds",
-                        "value": {
-                          "mode": "absolute",
-                          "steps": [
-                            {
-                              "value": null,
-                              "color": "green"
-                            },
-                            {
-                              "value": 2000,
-                              "color": "orange"
-                            },
-                            {
-                              "value": 5000,
-                              "color": "red"
-                            }
-                          ]
-                        }
-                      }
-                    ]
+                  "refId": "A", "hidden": false
+                }
+              }],
+              "transformations": [], "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig", "group": "stat", "version": "13.2.2",
+            "spec": {
+              "options": {
+                "colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "vertical",
+                "percentChangeColorMode": "standard", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+                "showPercentChange": false, "textMode": "value", "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "short", "decimals": 0, "color": { "mode": "thresholds" },
+                  "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }] }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-summary-failures": {
+        "kind": "Panel",
+        "spec": {
+          "id": 12,
+          "title": "처리 실패",
+          "description": "선택한 시간 범위에서 실패한 Fan-out 이벤트 수입니다.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [{
+                "kind": "PanelQuery",
+                "spec": {
+                  "query": {
+                    "kind": "DataQuery", "group": "prometheus", "version": "v0", "datasource": { "name": "prometheus" },
+                    "spec": {
+                      "editorMode": "code",
+                      "expr": "sum(last_over_time(notification_fanout_total_seconds_count{result=\"failure\"}[$__range]) - first_over_time(notification_fanout_total_seconds_count{result=\"failure\"}[$__range])) or vector(0)",
+                      "instant": true, "legendFormat": "처리 실패", "range": false
+                    }
                   },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Range Fan-out TPS"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "suffix: tx/s"
-                      },
-                      {
-                        "id": "decimals",
-                        "value": 3
-                      }
-                    ]
+                  "refId": "A", "hidden": false
+                }
+              }],
+              "transformations": [], "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig", "group": "stat", "version": "13.2.2",
+            "spec": {
+              "options": {
+                "colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "vertical",
+                "percentChangeColorMode": "standard", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+                "showPercentChange": false, "textMode": "value", "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "short", "decimals": 0, "color": { "mode": "thresholds" },
+                  "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 1, "color": "red" }] }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-summary-duration": {
+        "kind": "Panel",
+        "spec": {
+          "id": 13,
+          "title": "평균 처리시간",
+          "description": "선택한 시간 범위에서 성공한 Fan-out 이벤트의 평균 처리시간입니다.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [{
+                "kind": "PanelQuery",
+                "spec": {
+                  "query": {
+                    "kind": "DataQuery", "group": "prometheus", "version": "v0", "datasource": { "name": "prometheus" },
+                    "spec": {
+                      "editorMode": "code",
+                      "expr": "1000 * sum(last_over_time(notification_fanout_total_seconds_sum{result=\"success\"}[$__range]) - first_over_time(notification_fanout_total_seconds_sum{result=\"success\"}[$__range])) / sum(last_over_time(notification_fanout_total_seconds_count{result=\"success\"}[$__range]) - first_over_time(notification_fanout_total_seconds_count{result=\"success\"}[$__range]))",
+                      "instant": true, "legendFormat": "평균 처리시간", "range": false
+                    }
                   },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Range Notification Rate"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "suffix: notifications/s"
-                      },
-                      {
-                        "id": "decimals",
-                        "value": 1
-                      }
-                    ]
-                  }
-                ]
+                  "refId": "A", "hidden": false
+                }
+              }],
+              "transformations": [], "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig", "group": "stat", "version": "13.2.2",
+            "spec": {
+              "options": {
+                "colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "vertical",
+                "percentChangeColorMode": "standard", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+                "showPercentChange": false, "textMode": "value", "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "ms", "decimals": 0, "color": { "mode": "thresholds" },
+                  "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 2000, "color": "orange" }, { "value": 5000, "color": "red" }] }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-summary-fanout-tps": {
+        "kind": "Panel",
+        "spec": {
+          "id": 14,
+          "title": "Fan-out TPS",
+          "description": "선택한 시간 범위의 초당 Fan-out 이벤트 처리량입니다.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [{
+                "kind": "PanelQuery",
+                "spec": {
+                  "query": {
+                    "kind": "DataQuery", "group": "prometheus", "version": "v0", "datasource": { "name": "prometheus" },
+                    "spec": {
+                      "editorMode": "code",
+                      "expr": "sum(increase(notification_fanout_total_seconds_count{result=\"success\"}[$__range])) / $__range_s",
+                      "instant": true, "legendFormat": "Fan-out TPS", "range": false
+                    }
+                  },
+                  "refId": "A", "hidden": false
+                }
+              }],
+              "transformations": [], "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig", "group": "stat", "version": "13.2.2",
+            "spec": {
+              "options": {
+                "colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "vertical",
+                "percentChangeColorMode": "standard", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+                "showPercentChange": false, "textMode": "value", "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "suffix: tx/s", "decimals": 3, "color": { "mode": "thresholds" },
+                  "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }] }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-summary-notification-rate": {
+        "kind": "Panel",
+        "spec": {
+          "id": 15,
+          "title": "알림 처리량",
+          "description": "선택한 시간 범위에서 초당 생성된 알림 수입니다.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [{
+                "kind": "PanelQuery",
+                "spec": {
+                  "query": {
+                    "kind": "DataQuery", "group": "prometheus", "version": "v0", "datasource": { "name": "prometheus" },
+                    "spec": {
+                      "editorMode": "code",
+                      "expr": "sum(increase(notification_fanout_notifications_total[$__range])) / $__range_s",
+                      "instant": true, "legendFormat": "알림 처리량", "range": false
+                    }
+                  },
+                  "refId": "A", "hidden": false
+                }
+              }],
+              "transformations": [], "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig", "group": "stat", "version": "13.2.2",
+            "spec": {
+              "options": {
+                "colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "vertical",
+                "percentChangeColorMode": "standard", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+                "showPercentChange": false, "textMode": "value", "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "suffix: notifications/s", "decimals": 1, "color": { "mode": "thresholds" },
+                  "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }] }
+                },
+                "overrides": []
               }
             }
           }
@@ -320,7 +319,7 @@
         "kind": "Panel",
         "spec": {
           "id": 1,
-          "title": "Fan-out Latency",
+          "title": "전체 알림 Fan-out 처리시간",
           "description": "이벤트 발생 시점에 따른 Commit 완료 기준 Fan-out 처리시간의 변화 흐름을 점과 선으로 보여주는 그래프입니다.",
           "links": [],
           "data": {
@@ -452,7 +451,7 @@
                       "mode": "none"
                     },
                     "thresholdsStyle": {
-                "mode": "off"
+                      "mode": "off"
                     }
                   },
                   "thresholds": {
@@ -538,8 +537,8 @@
         "kind": "Panel",
         "spec": {
           "id": 2,
-          "title": "Phase Duration over Time",
-          "description": "이벤트 발생 시점에 따라 조회, 저장, Flush 시간이 어떻게 변했는지 점과 선으로 비교합니다.",
+          "title": "알림 처리 단계별 소요시간",
+          "description": "이벤트 발생 시점에 따라 조회, 저장, JPA Flush, Commit 시간이 어떻게 변했는지 비교합니다.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -628,6 +627,27 @@
                     "refId": "E",
                     "hidden": false
                   }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "prometheus"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "1000 * sum(rate(notification_fanout_commit_seconds_sum{result=\"success\"}[$__rate_interval])) / sum(rate(notification_fanout_commit_seconds_count{result=\"success\"}[$__rate_interval]))",
+                        "legendFormat": "Commit",
+                        "range": true
+                      }
+                    },
+                    "refId": "F",
+                    "hidden": false
+                  }
                 }
               ],
               "transformations": [],
@@ -705,8 +725,8 @@
         "kind": "Panel",
         "spec": {
           "id": 3,
-          "title": "DB Flush Latency over Time",
-          "description": "이벤트 발생 시점에 따른 INSERT SQL 실행시간 변화입니다. 점과 선으로 Flush 비용의 증가와 회복을 보여줍니다.",
+          "title": "JPA Flush 및 알림 INSERT 처리시간",
+          "description": "Hibernate flush에서 JDBC 배치 INSERT를 실행하고 PostgreSQL 응답을 받을 때까지의 시간입니다.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -909,61 +929,919 @@
             }
           }
         }
+      },
+      "panel-commit": {
+        "kind": "Panel",
+        "spec": {
+          "id": 5,
+          "title": "트랜잭션 Commit 처리시간",
+          "description": "Spring 트랜잭션의 beforeCommit부터 Commit 또는 Rollback 완료까지의 시간입니다.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "prometheus"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "1000 * sum(rate(notification_fanout_commit_seconds_sum{result=\"success\"}[$__rate_interval])) / sum(rate(notification_fanout_commit_seconds_count{result=\"success\"}[$__rate_interval]))",
+                        "legendFormat": "Average",
+                        "range": true
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "prometheus"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "1000 * histogram_quantile(0.95, sum by (le) (rate(notification_fanout_commit_seconds_bucket{result=\"success\"}[$__rate_interval])))",
+                        "legendFormat": "P95",
+                        "range": true
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "prometheus"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "1000 * histogram_quantile(0.99, sum by (le) (rate(notification_fanout_commit_seconds_bucket{result=\"success\"}[$__rate_interval])))",
+                        "legendFormat": "P99",
+                        "range": true
+                      }
+                    },
+                    "refId": "C",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "mean",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "ms",
+                  "min": 0,
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "Duration",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 8,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "smooth",
+                    "lineWidth": 3,
+                    "pointSize": 6,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "always",
+                    "spanNulls": true,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "P95"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.drawStyle",
+                        "value": "line"
+                      },
+                      {
+                        "id": "custom.fillOpacity",
+                        "value": 0
+                      },
+                      {
+                        "id": "custom.lineWidth",
+                        "value": 2
+                      },
+                      {
+                        "id": "custom.showPoints",
+                        "value": "always"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "mode": "fixed",
+                          "fixedColor": "yellow"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "P99"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.drawStyle",
+                        "value": "line"
+                      },
+                      {
+                        "id": "custom.fillOpacity",
+                        "value": 0
+                      },
+                      {
+                        "id": "custom.lineWidth",
+                        "value": 2
+                      },
+                      {
+                        "id": "custom.showPoints",
+                        "value": "always"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "mode": "fixed",
+                          "fixedColor": "blue"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "panel-cpu": {
+        "kind": "Panel",
+        "spec": {
+          "id": 6,
+          "title": "Notification CPU Usage",
+          "description": "Notification JVM 프로세스와 컨테이너 실행 환경의 CPU 사용률을 비교합니다. System CPU만 상승하면 다른 컨테이너 또는 Docker 환경의 영향을 함께 확인해야 합니다.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "max(system_cpu_usage{job=\"notification-service\",application=\"notification\"}) * 100",
+                        "legendFormat": "System CPU",
+                        "range": true
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "max(process_cpu_usage{job=\"notification-service\",application=\"notification\"}) * 100",
+                        "legendFormat": "JVM Process CPU",
+                        "range": true
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+                "tooltip": { "hideZeros": false, "mode": "multi", "sort": "desc" }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percent",
+                  "min": 0,
+                  "max": 100,
+                  "color": { "mode": "palette-classic" },
+                  "custom": {
+                    "axisLabel": "CPU",
+                    "drawStyle": "line",
+                    "fillOpacity": 8,
+                    "lineInterpolation": "smooth",
+                    "lineWidth": 2,
+                    "pointSize": 4,
+                    "showPoints": "auto",
+                    "spanNulls": true,
+                    "stacking": { "group": "A", "mode": "none" }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      { "value": null, "color": "green" },
+                      { "value": 70, "color": "yellow" },
+                      { "value": 85, "color": "red" }
+                    ]
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-memory": {
+        "kind": "Panel",
+        "spec": {
+          "id": 7,
+          "title": "JVM Heap Memory",
+          "description": "Fan-out 처리 중 JVM Heap의 사용량, 확정 용량과 최대 용량을 비교합니다.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "sum(jvm_memory_used_bytes{job=\"notification-service\",application=\"notification\",area=\"heap\"})",
+                        "legendFormat": "Heap Used",
+                        "range": true
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "sum(jvm_memory_committed_bytes{job=\"notification-service\",application=\"notification\",area=\"heap\"})",
+                        "legendFormat": "Heap Committed",
+                        "range": true
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "sum(jvm_memory_max_bytes{job=\"notification-service\",application=\"notification\",area=\"heap\"})",
+                        "legendFormat": "Heap Max",
+                        "range": true
+                      }
+                    },
+                    "refId": "C",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "legend": { "calcs": ["mean", "lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+                "tooltip": { "hideZeros": false, "mode": "multi", "sort": "desc" }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "bytes",
+                  "min": 0,
+                  "color": { "mode": "palette-classic" },
+                  "custom": {
+                    "axisLabel": "Memory",
+                    "drawStyle": "line",
+                    "fillOpacity": 8,
+                    "lineInterpolation": "smooth",
+                    "lineWidth": 2,
+                    "pointSize": 4,
+                    "showPoints": "auto",
+                    "spanNulls": true,
+                    "stacking": { "group": "A", "mode": "none" }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-gc": {
+        "kind": "Panel",
+        "spec": {
+          "id": 8,
+          "title": "JVM GC Pause",
+          "description": "GC 정지시간의 평균과 최대값을 표시해 Fan-out 지연과 GC의 상관관계를 확인합니다.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "1000 * sum(rate(jvm_gc_pause_seconds_sum{job=\"notification-service\",application=\"notification\"}[$__rate_interval])) / sum(rate(jvm_gc_pause_seconds_count{job=\"notification-service\",application=\"notification\"}[$__rate_interval]))",
+                        "legendFormat": "Average Pause",
+                        "range": true
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "1000 * max(jvm_gc_pause_seconds_max{job=\"notification-service\",application=\"notification\"})",
+                        "legendFormat": "Max Pause",
+                        "range": true
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+                "tooltip": { "hideZeros": false, "mode": "multi", "sort": "desc" }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "ms",
+                  "min": 0,
+                  "color": { "mode": "palette-classic" },
+                  "custom": {
+                    "axisLabel": "Pause",
+                    "drawStyle": "line",
+                    "fillOpacity": 8,
+                    "lineInterpolation": "smooth",
+                    "lineWidth": 2,
+                    "pointSize": 4,
+                    "showPoints": "auto",
+                    "spanNulls": true,
+                    "stacking": { "group": "A", "mode": "none" }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-hikari-connections": {
+        "kind": "Panel",
+        "spec": {
+          "id": 9,
+          "title": "HikariCP Connections",
+          "description": "DB Connection Pool의 사용·유휴·대기·최대 연결 수를 비교합니다. Pending이 0보다 크면 Connection Pool 병목 후보입니다.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": { "editorMode": "code", "expr": "sum(hikaricp_connections_active{job=\"notification-service\",application=\"notification\"})", "legendFormat": "Active", "range": true }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": { "editorMode": "code", "expr": "sum(hikaricp_connections_idle{job=\"notification-service\",application=\"notification\"})", "legendFormat": "Idle", "range": true }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": { "editorMode": "code", "expr": "sum(hikaricp_connections_pending{job=\"notification-service\",application=\"notification\"})", "legendFormat": "Pending", "range": true }
+                    },
+                    "refId": "C",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": { "editorMode": "code", "expr": "sum(hikaricp_connections_max{job=\"notification-service\",application=\"notification\"})", "legendFormat": "Max", "range": true }
+                    },
+                    "refId": "D",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "legend": { "calcs": ["mean", "lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+                "tooltip": { "hideZeros": false, "mode": "multi", "sort": "desc" }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "short",
+                  "min": 0,
+                  "color": { "mode": "palette-classic" },
+                  "custom": {
+                    "axisLabel": "Connections",
+                    "drawStyle": "line",
+                    "fillOpacity": 8,
+                    "lineInterpolation": "smooth",
+                    "lineWidth": 2,
+                    "pointSize": 4,
+                    "showPoints": "auto",
+                    "spanNulls": true,
+                    "stacking": { "group": "A", "mode": "none" }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-hikari-latency": {
+        "kind": "Panel",
+        "spec": {
+          "id": 10,
+          "title": "HikariCP Latency",
+          "description": "DB Connection 획득·사용·생성의 평균 시간을 비교해 Connection Pool과 DB 응답 지연을 확인합니다.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "1000 * sum(rate(hikaricp_connections_acquire_seconds_sum{job=\"notification-service\",application=\"notification\"}[$__rate_interval])) / sum(rate(hikaricp_connections_acquire_seconds_count{job=\"notification-service\",application=\"notification\"}[$__rate_interval]))",
+                        "legendFormat": "Acquire",
+                        "range": true
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "1000 * sum(rate(hikaricp_connections_usage_seconds_sum{job=\"notification-service\",application=\"notification\"}[$__rate_interval])) / sum(rate(hikaricp_connections_usage_seconds_count{job=\"notification-service\",application=\"notification\"}[$__rate_interval]))",
+                        "legendFormat": "Usage",
+                        "range": true
+                      }
+                    },
+                    "refId": "B",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": { "name": "prometheus" },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "1000 * sum(rate(hikaricp_connections_creation_seconds_sum{job=\"notification-service\",application=\"notification\"}[$__rate_interval])) / sum(rate(hikaricp_connections_creation_seconds_count{job=\"notification-service\",application=\"notification\"}[$__rate_interval]))",
+                        "legendFormat": "Creation",
+                        "range": true
+                      }
+                    },
+                    "refId": "C",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.2.2",
+            "spec": {
+              "options": {
+                "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+                "tooltip": { "hideZeros": false, "mode": "multi", "sort": "desc" }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "ms",
+                  "min": 0,
+                  "color": { "mode": "palette-classic" },
+                  "custom": {
+                    "axisLabel": "Latency",
+                    "drawStyle": "line",
+                    "fillOpacity": 8,
+                    "lineInterpolation": "smooth",
+                    "lineWidth": 2,
+                    "pointSize": 4,
+                    "showPoints": "auto",
+                    "spanNulls": true,
+                    "stacking": { "group": "A", "mode": "none" }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
       }
     },
     "layout": {
-      "kind": "GridLayout",
+      "kind": "RowsLayout",
       "spec": {
-        "items": [
+        "rows": [
           {
-            "kind": "GridLayoutItem",
+            "kind": "RowsLayoutRow",
             "spec": {
-              "x": 0,
-              "y": 0,
-              "width": 24,
-              "height": 4,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-summary"
+              "title": "테스트 실행 요약",
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 4,
+                        "height": 4,
+                        "element": { "kind": "ElementReference", "name": "panel-summary-success" }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 4,
+                        "y": 0,
+                        "width": 4,
+                        "height": 4,
+                        "element": { "kind": "ElementReference", "name": "panel-summary-created" }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 8,
+                        "y": 0,
+                        "width": 4,
+                        "height": 4,
+                        "element": { "kind": "ElementReference", "name": "panel-summary-failures" }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 0,
+                        "width": 4,
+                        "height": 4,
+                        "element": { "kind": "ElementReference", "name": "panel-summary-duration" }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 16,
+                        "y": 0,
+                        "width": 4,
+                        "height": 4,
+                        "element": { "kind": "ElementReference", "name": "panel-summary-fanout-tps" }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 20,
+                        "y": 0,
+                        "width": 4,
+                        "height": 4,
+                        "element": { "kind": "ElementReference", "name": "panel-summary-notification-rate" }
+                      }
+                    }
+                  ]
+                }
               }
             }
           },
           {
-            "kind": "GridLayoutItem",
+            "kind": "RowsLayoutRow",
             "spec": {
-              "x": 0,
-              "y": 4,
-              "width": 14,
-              "height": 9,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-total"
+              "title": "알림 Fan-out 처리 성능",
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 12,
+                        "height": 9,
+                        "element": { "kind": "ElementReference", "name": "panel-total" }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 0,
+                        "width": 6,
+                        "height": 9,
+                        "element": { "kind": "ElementReference", "name": "panel-flush" }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 18,
+                        "y": 0,
+                        "width": 6,
+                        "height": 9,
+                        "element": { "kind": "ElementReference", "name": "panel-commit" }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 9,
+                        "width": 24,
+                        "height": 8,
+                        "element": { "kind": "ElementReference", "name": "panel-phases" }
+                      }
+                    }
+                  ]
+                }
               }
             }
           },
           {
-            "kind": "GridLayoutItem",
+            "kind": "RowsLayoutRow",
             "spec": {
-              "x": 0,
-              "y": 13,
-              "width": 24,
-              "height": 8,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-phases"
+              "title": "알림 서비스 CPU·JVM 자원",
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 8,
+                        "height": 8,
+                        "element": { "kind": "ElementReference", "name": "panel-cpu" }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 8,
+                        "y": 0,
+                        "width": 8,
+                        "height": 8,
+                        "element": { "kind": "ElementReference", "name": "panel-memory" }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 16,
+                        "y": 0,
+                        "width": 8,
+                        "height": 8,
+                        "element": { "kind": "ElementReference", "name": "panel-gc" }
+                      }
+                    }
+                  ]
+                }
               }
             }
           },
           {
-            "kind": "GridLayoutItem",
+            "kind": "RowsLayoutRow",
             "spec": {
-              "x": 14,
-              "y": 4,
-              "width": 10,
-              "height": 9,
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-flush"
+              "title": "알림 DB 커넥션 풀",
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 12,
+                        "height": 8,
+                        "element": { "kind": "ElementReference", "name": "panel-hikari-connections" }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 0,
+                        "width": 12,
+                        "height": 8,
+                        "element": { "kind": "ElementReference", "name": "panel-hikari-latency" }
+                      }
+                    }
+                  ]
+                }
               }
             }
           }
