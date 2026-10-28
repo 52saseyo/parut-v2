@@ -1,0 +1,17 @@
+services:
+  postgres:
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - track_io_timing=on
+      - -c
+      - track_wal_io_timing=on
+
+  notification-service:
+    environment:
+      SPRING_JPA_PROPERTIES_HIBERNATE_JDBC_BATCH_SIZE: ${FANOUT_BATCH_SIZE:-50}
+      SPRING_JPA_PROPERTIES_HIBERNATE_GENERATE_STATISTICS: "true"
+      SPRING_APPLICATION_JSON: >-
+        {"logging":{"level":{"org.hibernate.session.metrics":"DEBUG"}}}
