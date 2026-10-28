@@ -38,6 +38,8 @@ public class TimeDealOpeningSoonNotificationService implements TimeDealOpeningSo
     @Override
     @Transactional
     public void createNotifications(TimeDealOpeningSoonCommand command) {
+        fanoutMetrics.registerCommitMeasurement(command.eventId());
+
         List<UUID> subscriberIds = fanoutMetrics.recordSubscriberLookup(
                 () -> subscriptionQueryUseCase.getActiveSubscriberIds(command.timeDealId())
         );
@@ -69,7 +71,7 @@ public class TimeDealOpeningSoonNotificationService implements TimeDealOpeningSo
         fanoutMetrics.recordSave(() -> notificationRepository.saveAll(notifications));
 
         // 영속성 컨텍스트에 쌓인 변경을 실제 DB에 반영하는 시간을 측정한다.
-        fanoutMetrics.recordFlush(notificationRepository::flush);
+        fanoutMetrics.recordFlush(command.eventId(), notificationRepository::flush);
         fanoutMetrics.recordCreatedAfterCommit(notifications.size());
 
         log.info(

@@ -10,6 +10,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 @Slf4j
@@ -27,6 +28,7 @@ public class NotificationFanoutMetrics {
     private static final String METRIC_NOTIFICATIONS = "notification.fanout.notifications";
     private static final String METRIC_SAVE = "notification.fanout.save";
     private static final String METRIC_FLUSH = "notification.fanout.flush";
+    private static final String METRIC_COMMIT = "notification.fanout.commit";
 
     private final MeterRegistry meterRegistry;
 
@@ -46,6 +48,8 @@ public class NotificationFanoutMetrics {
                 METRIC_FLUSH
         ).forEach(this::phaseTimer);
 
+        commitTimer(RESULT_SUCCESS);
+        commitTimer(RESULT_FAILURE);
         notificationsCounter();
     }
 
@@ -92,6 +96,49 @@ public class NotificationFanoutMetrics {
         );
     }
 
+    /**
+     * 실제 트랜잭션 Commit 직전부터 Commit 또는 Rollback 완료까지 측정한다.
+     */
+    public void registerCommitMeasurement(UUID eventId) {
+        if (!isTransactionSynchronizationActive()) {
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+
+                    private long commitStartedNanos;
+
+                    @Override
+                    public void beforeCommit(boolean readOnly) {
+                        commitStartedNanos = System.nanoTime();
+                    }
+
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (commitStartedNanos == 0L) {
+                            return;
+                        }
+
+                        long durationNanos = System.nanoTime() - commitStartedNanos;
+
+                        String result = status == STATUS_COMMITTED
+                                ? RESULT_SUCCESS
+                                : RESULT_FAILURE;
+
+                        commitTimer(result).record(durationNanos, TimeUnit.NANOSECONDS);
+
+                        log.info(
+                                "FANOUT_COMMIT_MEASUREMENT eventId={}, durationMs={}, result={}",
+                                eventId,
+                                TimeUnit.NANOSECONDS.toMillis(durationNanos),
+                                result
+                        );
+                    }
+                }
+        );
+    }
+
     public void recordCreatedAfterCommit(int count) {
         if (count <= 0) {
             return;
@@ -130,10 +177,26 @@ public class NotificationFanoutMetrics {
     }
 
     /**
-     * Hibernate가 실제 INSERT SQL을 실행하는 시간을 측정한다.
+     * Hibernate가 영속성 컨텍스트의 변경 내용을 INSERT SQL로 실행하고
+     * PostgreSQL의 응답을 받을 때까지 측정한다.
      */
-    public void recordFlush(Runnable action) {
-        phaseTimer(METRIC_FLUSH).record(action);
+    public void recordFlush(UUID eventId, Runnable action) {
+        long startedNanos = System.nanoTime();
+
+        try {
+            action.run();
+        } finally {
+            long durationNanos = System.nanoTime() - startedNanos;
+
+            phaseTimer(METRIC_FLUSH).record(durationNanos, TimeUnit.NANOSECONDS);
+
+            log.info(
+                    "FANOUT_FLUSH_MEASUREMENT "
+                            + "eventId={}, durationMs={}",
+                    eventId,
+                    TimeUnit.NANOSECONDS.toMillis(durationNanos)
+            );
+        }
     }
 
     private boolean isTransactionSynchronizationActive() {
@@ -151,6 +214,13 @@ public class NotificationFanoutMetrics {
     private Timer phaseTimer(String metricName) {
         return Timer.builder(metricName)
                 .tag("type", TYPE)
+                .register(meterRegistry);
+    }
+
+    private Timer commitTimer(String result) {
+        return Timer.builder(METRIC_COMMIT)
+                .tag("type", TYPE)
+                .tag("result", result)
                 .register(meterRegistry);
     }
 

@@ -40,6 +40,7 @@ management:
         "[notification.fanout.total]": true
         "[notification.fanout.save]": true
         "[notification.fanout.flush]": true
+        "[notification.fanout.commit]": true
 
       slo:
         "[notification.fanout.total]": 500ms,1s,2s
