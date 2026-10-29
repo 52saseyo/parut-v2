@@ -17,6 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -24,12 +25,14 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,7 +73,7 @@ public class ProductStockReservationExpirationProcessorTest {
                     .willReturn(Optional.of(reserveLog));
             given(productStockEventLogRepository.findByOrderItemIdAndEventType(orderItemId, StockEventType.RESTORE))
                     .willReturn(Optional.empty());
-            given(productStockRepository.findById(stockId)).willReturn(Optional.of(stock));
+            given(productStockRepository.findAllByIdForUpdate(List.of(stockId))).willReturn(List.of(stock));
 
             processor.expireOneReservation(reservationId);
 
@@ -80,6 +83,40 @@ public class ProductStockReservationExpirationProcessorTest {
             verify(productStockReservationRepository).saveAndFlush(reservation);
             verify(productStockRepository).saveAndFlush(stock);
             verify(productStockEventLogRepository).saveAndFlush(any(ProductStockEventLog.class));
+        }
+
+        @Test
+        @DisplayName("재고를 먼저 비관적 락으로 잠근 뒤 예약과 재고를 저장 (restore와 같은 순서, 데드락 방지)")
+        void expireOneReservation_locksStockBeforeSavingReservation() {
+            UUID reservationId = UUID.randomUUID();
+            UUID stockId = UUID.randomUUID();
+            UUID orderItemId = UUID.randomUUID();
+
+            ProductStockReservation reservation = ProductStockReservation
+                    .create(stockId, UUID.randomUUID(), 15, Instant.now().minusSeconds(60));
+            ReflectionTestUtils.setField(reservation, "id", reservationId);
+
+            ProductStockEventLog reserveLog = ProductStockEventLog.create(reservationId, orderItemId, StockEventType.RESERVE);
+            ProductStock stock = ProductStock.create(UUID.randomUUID(), 100, 10);
+            stock.reserve(15);
+
+            given(productStockReservationRepository.findById(reservationId)).willReturn(Optional.of(reservation));
+            given(productStockEventLogRepository.findByReservationIdAndEventType(reservationId, StockEventType.RESERVE))
+                    .willReturn(Optional.of(reserveLog));
+            given(productStockEventLogRepository.findByOrderItemIdAndEventType(orderItemId, StockEventType.RESTORE))
+                    .willReturn(Optional.empty());
+            given(productStockRepository.findAllByIdForUpdate(List.of(stockId))).willReturn(List.of(stock));
+
+            processor.expireOneReservation(reservationId);
+
+            log.info("[Processor.expireOneReservation] reservationId={} 재고 잠금 -> 예약 저장 -> 재고 저장 순서 기대",
+                    reservationId);
+
+            InOrder inOrder = inOrder(productStockRepository, productStockReservationRepository);
+            inOrder.verify(productStockRepository).findAllByIdForUpdate(List.of(stockId));
+            inOrder.verify(productStockReservationRepository).saveAndFlush(reservation);
+            inOrder.verify(productStockRepository).saveAndFlush(stock);
+            verify(productStockRepository, never()).findById(any());
         }
 
         @Test
@@ -100,10 +137,10 @@ public class ProductStockReservationExpirationProcessorTest {
 
             processor.expireOneReservation(reservationId);
 
-            log.info("[Processor.expireOneReservation] reservationId={} 이미 RESTORE 로그 존재 -> 재고 조회 및 저장 없이 종료 기대",
+            log.info("[Processor.expireOneReservation] reservationId={} 이미 RESTORE 로그 존재 -> 재고 잠금 및 저장 없이 종료 기대",
                     reservationId);
 
-            verify(productStockRepository, never()).findById(any());
+            verify(productStockRepository, never()).findAllByIdForUpdate(any());
             verify(productStockReservationRepository, never()).saveAndFlush(any());
         }
 
@@ -126,17 +163,20 @@ public class ProductStockReservationExpirationProcessorTest {
         void expireOneReservation_alreadyConfirmed_throwsException() {
             UUID reservationId = UUID.randomUUID();
             UUID orderItemId = UUID.randomUUID();
+            UUID stockId = UUID.randomUUID();
             ProductStockReservation reservation = ProductStockReservation
-                    .create(UUID.randomUUID(), UUID.randomUUID(), 10, Instant.now().plusSeconds(1800));
+                    .create(stockId, UUID.randomUUID(), 10, Instant.now().plusSeconds(1800));
             reservation.confirm(); // 이미 CONFIRMED
             ProductStockEventLog reserveLog = ProductStockEventLog.create(reservationId, orderItemId, StockEventType.RESERVE);
             ReflectionTestUtils.setField(reservation, "id", reservationId);
+            ProductStock stock = ProductStock.create(UUID.randomUUID(), 100, 10);
 
             given(productStockReservationRepository.findById(reservationId)).willReturn(Optional.of(reservation));
             given(productStockEventLogRepository.findByReservationIdAndEventType(reservationId, StockEventType.RESERVE))
                     .willReturn(Optional.of(reserveLog));
             given(productStockEventLogRepository.findByOrderItemIdAndEventType(orderItemId, StockEventType.RESTORE))
                     .willReturn(Optional.empty());
+            given(productStockRepository.findAllByIdForUpdate(List.of(stockId))).willReturn(List.of(stock));
 
             log.info("[Processor.expireOneReservation] reservationId={} 이미 CONFIRMED(status={}) 상태 -> ALREADY_PROCESSED 예외 기대",
                     reservationId, reservation.getStatus());
@@ -145,7 +185,8 @@ public class ProductStockReservationExpirationProcessorTest {
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRODUCT_STOCK_RESERVATION_ALREADY_PROCESSED);
 
-            verify(productStockRepository, never()).findById(any());
+            // 재고는 잠갔지만 복구·저장하지 않고 예외가 그대로 전파되어 트랜잭션이 롤백
+            verify(productStockRepository, never()).saveAndFlush(any(ProductStock.class));
         }
 
         @Test
@@ -153,16 +194,20 @@ public class ProductStockReservationExpirationProcessorTest {
         void expireOneReservation_optimisticLockFailure_throwsWithoutSwallowing() {
             UUID reservationId = UUID.randomUUID();
             UUID orderItemId = UUID.randomUUID();
+            UUID stockId = UUID.randomUUID();
             ProductStockReservation reservation = ProductStockReservation
-                    .create(UUID.randomUUID(), UUID.randomUUID(), 10, Instant.now().minusSeconds(60));
+                    .create(stockId, UUID.randomUUID(), 10, Instant.now().minusSeconds(60));
             ProductStockEventLog reserveLog = ProductStockEventLog.create(reservationId, orderItemId, StockEventType.RESERVE);
             ReflectionTestUtils.setField(reservation, "id", reservationId);
+            ProductStock stock = ProductStock.create(UUID.randomUUID(), 100, 10);
+            stock.reserve(10);
 
             given(productStockReservationRepository.findById(reservationId)).willReturn(Optional.of(reservation));
             given(productStockEventLogRepository.findByReservationIdAndEventType(reservationId, StockEventType.RESERVE))
                     .willReturn(Optional.of(reserveLog));
             given(productStockEventLogRepository.findByOrderItemIdAndEventType(orderItemId, StockEventType.RESTORE))
                     .willReturn(Optional.empty());
+            given(productStockRepository.findAllByIdForUpdate(List.of(stockId))).willReturn(List.of(stock));
             given(productStockReservationRepository.saveAndFlush(any(ProductStockReservation.class)))
                     .willThrow(OptimisticLockingFailureException.class);
 
@@ -174,7 +219,8 @@ public class ProductStockReservationExpirationProcessorTest {
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRODUCT_STOCK_RESERVATION_ALREADY_PROCESSED);
 
-            verify(productStockRepository, never()).findById(any());
+            verify(productStockRepository, never()).saveAndFlush(any(ProductStock.class));
+            assertThat(stock.getAvailableQuantity()).isEqualTo(90);
         }
     }
 

@@ -37,3 +37,8 @@ logging:
     root: info
   pattern:
     level: "%5p [%X{traceId:-}]"
+
+# 정산 자동 완료: 매일 03시(한국 시간)에 실행하며 처리자는 위 app.system-account-id를 사용한다.
+settlement:
+  completion:
+    cron: "0 0 3 * * *"

@@ -33,6 +33,7 @@ import com.parut.order.delivery.application.DeliveryService;
 import com.parut.order.delivery.domain.DeliveryStatus;
 import com.parut.order.delivery.infrastructure.persistence.DeliveryRepository;
 import com.parut.order.delivery.infrastructure.config.DeliverySchedulingConfig;
+import com.parut.order.global.config.SchedulingConfig;
 
 @ExtendWith(MockitoExtension.class)
 class DeliveryCompletionSchedulerTest {
@@ -120,7 +121,7 @@ class DeliveryCompletionSchedulerTest {
                             "delivery.completion.fixed-delay", "invalid")));
             context.registerBean(DeliveryRepository.class, () -> deliveryRepository);
             context.registerBean(DeliveryService.class, () -> deliveryService);
-            context.register(DeliveryCompletionScheduler.class, DeliverySchedulingConfig.class);
+            context.register(DeliveryCompletionScheduler.class, DeliverySchedulingConfig.class, SchedulingConfig.class);
 
             assertThatCode(context::refresh).doesNotThrowAnyException();
 
