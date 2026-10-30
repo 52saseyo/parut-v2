@@ -25,17 +25,17 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(up{job=\"order-perf\"}, instance)",
+        "definition": "label_values(up{job=\"order-service\"}, instance)",
         "query": {
-          "query": "label_values(up{job=\"order-perf\"}, instance)",
+          "query": "label_values(up{job=\"order-service\"}, instance)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
         "multi": false,
         "includeAll": false,
         "current": {
-          "text": "order-perf:8080",
-          "value": "order-perf:8080"
+          "text": "order-service:8080",
+          "value": "order-service:8080"
         }
       },
       {
@@ -89,7 +89,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(settlement_completion_records_completed_total{job=\"order-perf\",instance=~\"${instance:regex}\"} - settlement_completion_records_completed_total{job=\"order-perf\",instance=~\"${instance:regex}\"} offset ${__range_s}s)",
+          "expr": "sum(settlement_completion_records_completed_total{job=\"order-service\",instance=~\"${instance:regex}\"} - settlement_completion_records_completed_total{job=\"order-service\",instance=~\"${instance:regex}\"} offset ${__range_s}s)",
           "instant": true,
           "range": false,
           "legendFormat": "처리 완료 건수"
@@ -140,7 +140,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(settlement_completion_job_seconds_sum{job=\"order-perf\",instance=~\"${instance:regex}\"} - settlement_completion_job_seconds_sum{job=\"order-perf\",instance=~\"${instance:regex}\"} offset ${__range_s}s) * 1000",
+          "expr": "sum(settlement_completion_job_seconds_sum{job=\"order-service\",instance=~\"${instance:regex}\"} - settlement_completion_job_seconds_sum{job=\"order-service\",instance=~\"${instance:regex}\"} offset ${__range_s}s) * 1000",
           "instant": true,
           "range": false,
           "legendFormat": "전체 실행시간"
@@ -191,7 +191,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(settlement_completion_records_completed_total{job=\"order-perf\",instance=~\"${instance:regex}\"} - settlement_completion_records_completed_total{job=\"order-perf\",instance=~\"${instance:regex}\"} offset ${__range_s}s) / (sum(settlement_completion_job_seconds_sum{job=\"order-perf\",instance=~\"${instance:regex}\"} - settlement_completion_job_seconds_sum{job=\"order-perf\",instance=~\"${instance:regex}\"} offset ${__range_s}s))",
+          "expr": "sum(settlement_completion_records_completed_total{job=\"order-service\",instance=~\"${instance:regex}\"} - settlement_completion_records_completed_total{job=\"order-service\",instance=~\"${instance:regex}\"} offset ${__range_s}s) / (sum(settlement_completion_job_seconds_sum{job=\"order-service\",instance=~\"${instance:regex}\"} - settlement_completion_job_seconds_sum{job=\"order-service\",instance=~\"${instance:regex}\"} offset ${__range_s}s))",
           "instant": true,
           "range": false,
           "legendFormat": "초당 정산 처리 건수"
@@ -256,21 +256,21 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "hikaricp_connections_active{job=\"order-perf\",instance=~\"${instance:regex}\"}",
+          "expr": "hikaricp_connections_active{job=\"order-service\",instance=~\"${instance:regex}\"}",
           "legendFormat": "Active",
           "range": true,
           "interval": "5s"
         },
         {
           "refId": "B",
-          "expr": "hikaricp_connections_idle{job=\"order-perf\",instance=~\"${instance:regex}\"}",
+          "expr": "hikaricp_connections_idle{job=\"order-service\",instance=~\"${instance:regex}\"}",
           "legendFormat": "Idle",
           "range": true,
           "interval": "5s"
         },
         {
           "refId": "C",
-          "expr": "hikaricp_connections_pending{job=\"order-perf\",instance=~\"${instance:regex}\"}",
+          "expr": "hikaricp_connections_pending{job=\"order-service\",instance=~\"${instance:regex}\"}",
           "legendFormat": "Pending",
           "range": true,
           "interval": "5s"
@@ -316,7 +316,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(hikaricp_connections_acquire_seconds_sum{job=\"order-perf\",instance=~\"${instance:regex}\"}[$__rate_interval])) / sum(rate(hikaricp_connections_acquire_seconds_count{job=\"order-perf\",instance=~\"${instance:regex}\"}[$__rate_interval])) * 1000",
+          "expr": "sum(rate(hikaricp_connections_acquire_seconds_sum{job=\"order-service\",instance=~\"${instance:regex}\"}[$__rate_interval])) / sum(rate(hikaricp_connections_acquire_seconds_count{job=\"order-service\",instance=~\"${instance:regex}\"}[$__rate_interval])) * 1000",
           "legendFormat": "연결 획득 평균",
           "range": true,
           "interval": "5s"
@@ -362,7 +362,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "hikaricp_connections_timeout_total{job=\"order-perf\",instance=~\"${instance:regex}\"}",
+          "expr": "hikaricp_connections_timeout_total{job=\"order-service\",instance=~\"${instance:regex}\"}",
           "legendFormat": "timeout 누적",
           "range": true,
           "interval": "5s"
@@ -415,14 +415,14 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(process_cpu_time_ns_total{job=\"order-perf\",instance=~\"${instance:regex}\"}[$__rate_interval])) / 1000000000 / max(system_cpu_count{job=\"order-perf\",instance=~\"${instance:regex}\"})",
+          "expr": "sum(rate(process_cpu_time_ns_total{job=\"order-service\",instance=~\"${instance:regex}\"}[$__rate_interval])) / 1000000000 / max(system_cpu_count{job=\"order-service\",instance=~\"${instance:regex}\"})",
           "legendFormat": "Process",
           "range": true,
           "interval": "5s"
         },
         {
           "refId": "B",
-          "expr": "system_cpu_usage{job=\"order-perf\",instance=~\"${instance:regex}\"}",
+          "expr": "system_cpu_usage{job=\"order-service\",instance=~\"${instance:regex}\"}",
           "legendFormat": "System",
           "range": true,
           "interval": "5s"
@@ -481,7 +481,7 @@
           "targets": [
             {
               "refId": "A",
-              "expr": "(max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])) or max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])))",
+              "expr": "(max by (run_id) (max_over_time({platform=\"docker\",service_name=\"order-service\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])) or max by (run_id) (max_over_time({platform=\"docker\",service_name=\"order-service\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])))",
               "queryType": "instant",
               "editorMode": "code"
             }
@@ -532,7 +532,7 @@
           "targets": [
             {
               "refId": "A",
-              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap total_ms | __error__ = \"\" [$__range]))",
+              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"order-service\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap total_ms | __error__ = \"\" [$__range]))",
               "queryType": "instant",
               "editorMode": "code"
             }
@@ -583,7 +583,7 @@
           "targets": [
             {
               "refId": "A",
-              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])) / max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap total_ms | __error__ = \"\" [$__range])) * 1000",
+              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"order-service\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap completed | __error__ = \"\" [$__range])) / max by (run_id) (max_over_time({platform=\"docker\",service_name=\"order-service\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap total_ms | __error__ = \"\" [$__range])) * 1000",
               "queryType": "instant",
               "editorMode": "code"
             }
@@ -634,7 +634,7 @@
           "targets": [
             {
               "refId": "A",
-              "expr": "sum(count_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" [$__range])) or (sum(count_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" [$__range])) * -1)",
+              "expr": "sum(count_over_time({platform=\"docker\",service_name=\"order-service\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" [$__range])) or (sum(count_over_time({platform=\"docker\",service_name=\"order-service\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" [$__range])) * -1)",
               "queryType": "instant",
               "editorMode": "code"
             }
@@ -700,7 +700,7 @@
           "targets": [
             {
               "refId": "A",
-              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap update_ms | __error__ = \"\" [$__range]))",
+              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"order-service\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap update_ms | __error__ = \"\" [$__range]))",
               "queryType": "instant",
               "editorMode": "code"
             }
@@ -751,7 +751,7 @@
           "targets": [
             {
               "refId": "A",
-              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunk_ms | __error__ = \"\" [$__range]))",
+              "expr": "max by (run_id) (max_over_time({platform=\"docker\",service_name=\"order-service\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunk_ms | __error__ = \"\" [$__range]))",
               "queryType": "instant",
               "editorMode": "code"
             }
@@ -802,7 +802,7 @@
           "targets": [
             {
               "refId": "A",
-              "expr": "(max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunks | __error__ = \"\" [$__range])) or max by (run_id) (max_over_time({platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunks | __error__ = \"\" [$__range])))",
+              "expr": "(max by (run_id) (max_over_time({platform=\"docker\",service_name=\"order-service\"} |= \"정산 자동완료 종료\" | regexp `runId=(?P<run_id>[0-9a-f-]{36}), cutoff=(?P<cutoff>[^,]+), candidates=(?P<candidates>[0-9]+), succeeded=(?P<completed>[0-9]+), skipped=(?P<skipped>[0-9]+), selections=(?P<selections>[0-9]+), committedChunks=(?P<chunks>[0-9]+), totalMs=(?P<total_ms>[0-9.]+), chunkTransactionMs=(?P<chunk_ms>[0-9.]+), mutationMs=(?P<update_ms>[0-9.]+), transactionBoundaryMs=(?P<boundary_ms>[0-9.]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunks | __error__ = \"\" [$__range])) or max by (run_id) (max_over_time({platform=\"docker\",service_name=\"order-service\"} |= \"정산 자동완료 중단\" | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\" | unwrap chunks | __error__ = \"\" [$__range])))",
               "queryType": "instant",
               "editorMode": "code"
             }
@@ -852,7 +852,7 @@
           "targets": [
             {
               "refId": "A",
-              "expr": "{platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\"",
+              "expr": "{platform=\"docker\",service_name=\"order-service\"} | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | run_id != \"\" | run_id =~ \"^${run_id:regex}$\"",
               "queryType": "range",
               "editorMode": "code",
               "maxLines": 200
@@ -885,7 +885,7 @@
           "targets": [
             {
               "refId": "A",
-              "expr": "{platform=\"docker\",service_name=\"parut-settlement-perf-order-perf-1\"} |~ \"정산 자동완료 (종료|중단)\" | regexp `정산 자동완료 (?P<result>종료|중단)` | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | regexp `totalMs=(?P<total_ms>[0-9.]+)` | run_id != \"\" | line_format `{\"run_id\":\"{{.run_id}}\",\"result\":\"{{.result}}\",\"completed\":\"{{.completed}}\",\"total_ms\":\"{{.total_ms}}\",\"chunks\":\"{{.chunks}}\",\"skipped\":\"{{.skipped}}\"}`",
+              "expr": "{platform=\"docker\",service_name=\"order-service\"} |~ \"정산 자동완료 (종료|중단)\" | regexp `정산 자동완료 (?P<result>종료|중단)` | regexp `runId=(?P<run_id>[0-9a-f-]{36})` | regexp `succeeded=(?P<completed>[0-9]+)` | regexp `skipped=(?P<skipped>[0-9]+)` | regexp `committedChunks=(?P<chunks>[0-9]+)` | regexp `totalMs=(?P<total_ms>[0-9.]+)` | run_id != \"\" | line_format `{\"run_id\":\"{{.run_id}}\",\"result\":\"{{.result}}\",\"completed\":\"{{.completed}}\",\"total_ms\":\"{{.total_ms}}\",\"chunks\":\"{{.chunks}}\",\"skipped\":\"{{.skipped}}\"}`",
               "queryType": "range",
               "editorMode": "code",
               "maxLines": 1000

@@ -32,11 +32,3 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['notification-service:8080']
-
-  # 수동 실행하는 테스트 서버이므로 공통 장애 알림의 *-service 대상과 구분한다.
-  - job_name: 'order-perf'
-    metrics_path: '/actuator/prometheus'
-    static_configs:
-      - targets: ['order-perf:8080']
-        labels:
-          application: order
