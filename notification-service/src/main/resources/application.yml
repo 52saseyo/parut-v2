@@ -22,3 +22,13 @@ logging:
     root: info
   pattern:
     level: "%5p [traceId=%X{traceId:-}]"
+
+management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}

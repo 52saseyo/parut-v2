@@ -56,3 +56,13 @@ cloud:
       bucket: ${S3_BUCKET}
       base-url: ${S3_BASE_URL}
       presigned-expiration-seconds: ${IMAGE_PRESIGNED_EXPIRATION_SECONDS:600}
+
+management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}

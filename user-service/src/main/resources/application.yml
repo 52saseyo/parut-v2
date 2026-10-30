@@ -36,3 +36,13 @@ logging:
 
 order-service:
   url: ${ORDER_URL:http://localhost:8083}
+
+management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
