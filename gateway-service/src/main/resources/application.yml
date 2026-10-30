@@ -47,3 +47,17 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET:v3ry-s3cr3t-k3y-f0r-p4rut-ms4-jwt-t0k3n-s3cur1ty!@#must-be-long-enough}
+
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}

@@ -113,6 +113,18 @@ services:
     networks:
       - parut-net
 
+  tempo:
+    image: grafana/tempo:2.8.2
+    container_name: tempo
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    ports:
+      - "3200:3200"
+    volumes:
+      - ./infra/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+    networks:
+      - parut-net
+
   alloy:
     image: grafana/alloy:v1.20.1
     container_name: alloy
@@ -124,12 +136,15 @@ services:
       - /etc/alloy/config.alloy
     ports:
       - "12345:12345"
+      - "4317:4317"
+      - "4318:4318"
     volumes:
       - ./infra/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - alloy_data:/var/lib/alloy/data
     depends_on:
       - loki
+      - tempo
     networks:
       - parut-net
 
@@ -148,6 +163,7 @@ services:
     depends_on:
       - prometheus
       - loki
+      - tempo
     networks:
       - parut-net
 
@@ -158,6 +174,7 @@ volumes:
   loki_data:
   alloy_data:
   prometheus_data:
+  tempo_data:
 
 networks:
   parut-net:

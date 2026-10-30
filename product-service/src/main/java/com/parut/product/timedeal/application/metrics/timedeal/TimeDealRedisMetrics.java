@@ -21,7 +21,7 @@ public class TimeDealRedisMetrics {
     private final MeterRegistry meterRegistry;
 
     public void recordReservationResult(TimeDealStockReservationResult result) {
-        meterRegistry.counter(RESERVATION_METRIC, "result", result.name()).increment();
+        meterRegistry.counter(RESERVATION_METRIC, "result", result.name()).increment(); // NOTE: 선점 횟수, 매진 횟수를 각각 result 로 증가 (increment()) 시키는 메서드
     }
 
     public void recordCompensationResult(TimeDealStockCompensationResult result) {
