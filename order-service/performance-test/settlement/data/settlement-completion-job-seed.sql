@@ -1,10 +1,10 @@
--- 정산 자동 완료 측정용 데이터. 전용 settlement_perf DB(localhost:55433)에서만 실행한다.
+-- 정산 자동 완료 측정용 데이터. 로컬 docker 공용 DB(parut)에서 실행하며 실험 데이터는 ID 규칙과 created_by로 구분한다.
 -- 측정 한 회차마다 한 번 실행한다. 이전 실험 정산을 모두 지우고 완료 대기(PENDING) 정산 10,000건을 한꺼번에 새로 만든다.
 -- 건수를 바꾸려면 generate_series의 10000 네 곳을 함께 바꾼다.
 -- 스케줄러의 "정산 자동완료 종료" 로그를 확인한 직후에 실행한다.
--- CLI(저장소 루트): docker compose --env-file /dev/null -f docker-compose.perf.yml exec -T postgres-perf psql -X -v ON_ERROR_STOP=1 -U settlement_perf -d settlement_perf < order-service/performance-test/settlement/data/settlement-completion-job-seed.sql
+-- CLI(저장소 루트): docker exec -i postgres psql -X -v ON_ERROR_STOP=1 -U parut -d parut < order-service/performance-test/settlement/data/settlement-completion-job-seed.sql
 
--- 실행 전 확인: settlement_perf가 아니면 실행하지 않는다.
+-- 실행 전 확인: 로컬 parut DB가 아니면 실행하지 않는다.
 SELECT current_database();
 
 BEGIN;
