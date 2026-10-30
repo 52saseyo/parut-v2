@@ -54,3 +54,8 @@ delivery:
   completion:
     delay-seconds: 10
     fixed-delay: 1s
+
+# 로컬 성능 측정 대기를 줄이기 위해 정산 자동 완료를 매분 실행하며 운영 기본값(매일 03시)은 변경하지 않는다.
+settlement:
+  completion:
+    cron: "0 * * * * *"
