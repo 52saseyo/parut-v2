@@ -58,6 +58,10 @@ cloud:
       presigned-expiration-seconds: ${IMAGE_PRESIGNED_EXPIRATION_SECONDS:600}
 
 management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
   tracing:
     sampling:
       probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
@@ -65,4 +69,4 @@ management:
     tracing:
       export:
         otlp:
-          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}
